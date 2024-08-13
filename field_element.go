@@ -63,6 +63,9 @@ func (e FieldElement) Mul(other FieldElement) (*FieldElement, error) {
 
 func (e FieldElement) Pow(by int) (*FieldElement, error) {
   result := 1
+  //I know that a^(p-1) == 1 (mod r) 
+  //This line allows me then to exponentiate by negative values
+  by = by % (e.order - 1)
   for by > 0 {
     result = (result * e.value) % e.order
   }
