@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+
+
 type FieldElement struct{
   order int
   value int
@@ -37,6 +39,7 @@ func differentFieldsError() error {
   return errors.New("Cannot sum elements from different fields")
 }
 
+
 func (e FieldElement) Sum(other FieldElement) (*FieldElement, error) {
   if e.order != other.order {
     return nil, differentFieldsError() 
@@ -68,6 +71,7 @@ func (e FieldElement) Pow(by int) (*FieldElement, error) {
   by = by % (e.order - 1)
   for by > 0 {
     result = (result * e.value) % e.order
+    by--
   }
   return NewFieldElement(e.order, result)
 }
