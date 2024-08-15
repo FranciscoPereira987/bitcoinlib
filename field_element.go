@@ -5,86 +5,86 @@ import (
 	"fmt"
 )
 
-
-
-type FieldElement struct{
-  order int
-  value int
+type FieldElement struct {
+	order int
+	value int
 }
 
-func NewFieldElement(order, value int)  (*FieldElement, error) {
-  if value >= order {
-    return nil, errors.New(fmt.Sprintf("value: %d if larger than the order %d", value, order))
-  }
-
-  return &FieldElement{
-    order,
-    value,
-  }, nil
+func NewFieldElement(order, value int) (*FieldElement, error) {
+	if value >= order {
+		return nil, errors.New(fmt.Sprintf("value: %d if larger than the order %d", value, order))
+	}
+	if value < 0 {
+		value = value % order
+		value = order + value
+	}
+	return &FieldElement{
+		order,
+		value,
+	}, nil
 }
 
 func (e FieldElement) PrintElement() string {
-  return fmt.Sprintf("FieldElement_%d(%d)", e.value, e.order)
+	return fmt.Sprintf("FieldElement_%d(%d)", e.value, e.order)
 }
 
 func (e FieldElement) Eq(other FieldElement) bool {
-  return e.order == other.order && e.value == other.value
+	return e.order == other.order && e.value == other.value
 }
 
 func (e FieldElement) Ne(other FieldElement) bool {
-  return !e.Eq(other)
+	return !e.Eq(other)
 }
 
 func differentFieldsError() error {
-  return errors.New("Cannot sum elements from different fields")
+	return errors.New("Cannot sum elements from different fields")
 }
 
-
 func (e FieldElement) Sum(other FieldElement) (*FieldElement, error) {
-  if e.order != other.order {
-    return nil, differentFieldsError() 
-  }
-  result := (e.value + other.value) % e.order
-  return NewFieldElement(e.order, result)
+	if e.order != other.order {
+		return nil, differentFieldsError()
+	}
+	result := (e.value + other.value) % e.order
+	return NewFieldElement(e.order, result)
 }
 
 func (e FieldElement) Sub(other FieldElement) (*FieldElement, error) {
-  if e.order != other.order {
-    return nil, differentFieldsError() 
-  }
-  result := (e.value - other.value) % e.order
-  return NewFieldElement(e.order, result)
+	if e.order != other.order {
+		return nil, differentFieldsError()
+	}
+	result := (e.value - other.value) % e.order
+	return NewFieldElement(e.order, result)
 }
 
 func (e FieldElement) Mul(other FieldElement) (*FieldElement, error) {
-  if e.order != other.order {
-    return nil, differentFieldsError()
-  }
-  result := (e.value * other.value) % e.order
-  return NewFieldElement(e.order, result)
+	if e.order != other.order {
+		return nil, differentFieldsError()
+	}
+	result := (e.value * other.value) % e.order
+	return NewFieldElement(e.order, result)
 }
 
 func (e FieldElement) Pow(by int) (*FieldElement, error) {
-  result := 1
-  //I know that a^(p-1) == 1 (mod r) 
-  //This line allows me then to exponentiate by negative values
-  by = by % (e.order - 1)
-  for by > 0 {
-    result = (result * e.value) % e.order
-    by--
-  }
-  return NewFieldElement(e.order, result)
+	result := 1
+	//I know that a^(p-1) == 1 (mod r)
+	//This line allows me then to exponentiate by negative values
+	by = by % (e.order - 1)
+	for by > 0 {
+		result = (result * e.value) % e.order
+		by--
+	}
+	return NewFieldElement(e.order, result)
 }
 
-func (e FieldElement) Inverse() (*FieldElement) {
-  inverse, _ := e.Pow(e.order - 2)
-  return inverse
+func (e FieldElement) Inverse() *FieldElement {
+	inverse, _ := e.Pow(e.order - 2)
+	return inverse
 }
 
 func (e FieldElement) Div(by FieldElement) (*FieldElement, error) {
-  if e.order != by.order {
-    return nil, differentFieldsError()
-  }
-  byInverted := by.Inverse()
-  return e.Mul(*byInverted)
+	if e.order != by.order {
+		return nil, differentFieldsError()
+	}
+	byInverted := by.Inverse()
+	return e.Mul(*byInverted)
 }
