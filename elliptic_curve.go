@@ -121,9 +121,24 @@ func NewPointFromInts(order, x, y, a, b int) (Point, error) {
 	return NewPoint(NewCoordinates(x_val, y_val), *a_val, *b_val)
 }
 
+func NewInfinitePoint(order, a, b int) (Point, error) {
+  a_val, err := NewFieldElement(order, a)
+  if err != nil {
+    return nil, err
+  }
+  b_val, err := NewFieldElement(order, b)
+  if err != nil {
+    return nil, err
+  }
+  return &Infinite{
+    a: *a_val,
+    b: *b_val,
+  }, nil
+}
+
 func NewPoint(coord Coordinates, a, b FieldElement) (Point, error) {
 	if coord.inf {
-		return &Infinite{}, nil
+		return &Infinite{a, b}, nil
 	}
 
 	point := &FinitePoint{
@@ -156,7 +171,10 @@ func (p *FinitePoint) Ne(other Point) bool {
 // Returns a new point when p is added to itself
 func (p *FinitePoint) addOnItself() (Point, error) {
 	if p.y.value == 0 {
-		return &Infinite{}, nil
+		return &Infinite{
+      p.a,
+      p.b,
+    }, nil
 	}
 	three, _ := NewFieldElement(p.x.order, 3)
 	two, _ := NewFieldElement(p.x.order, 2)
@@ -203,21 +221,29 @@ func (p *FinitePoint) Add(other Point) (Point, error) {
 			return p.addOnItself()
 		}
 		if otherFinite.x.Eq(p.x) {
-			return &Infinite{}, nil
+			return &Infinite{
+        p.a,
+        p.b,
+      }, nil
 		}
 		return p.addOnDifferent(*otherFinite)
 	}
 	return other.Add(p)
 }
 
+//Multiplies using binary expansion
 func (p *FinitePoint) Scale(by int) Point {
-	if by == 0 {
-		return p
-	}
-	var partial Point = p
-	for by > 1 {
-		partial, _ = p.Add(partial)
-		by--
+
+  partial, _ := NewInfinitePoint(p.a.order, p.a.value, p.b.value) 
+  actual, _ := NewPoint(NewCoordinates(&p.x, &p.y), p.a, p.b)
+  for by > 0 {
+    //If the current value is one (add the actual number)
+    if by & 1 == 1{
+      partial, _ = actual.Add(partial)
+    }
+    //Multiplies by two before the shift
+	  actual, _ = actual.Add(actual)	
+    by = by >> 1
 	}
 	return partial
 }

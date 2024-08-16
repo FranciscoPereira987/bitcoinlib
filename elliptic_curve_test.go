@@ -2,8 +2,6 @@ package bitcoinlib_test
 
 import (
 	"bitcoinlib"
-	"fmt"
-
 	"testing"
 )
 
@@ -51,8 +49,31 @@ func TestAddition(t *testing.T) {
 
 func TestScalarMultiplication(t *testing.T) {
 	prime := 223
-	point, _ := bitcoinlib.NewPointFromInts(prime, 192, 105, 0, 7)
-	by_two := point.Scale(2)
-	fmt.Print(by_two)
-	t.Fatal("Failed")
+  points := [][2]int{{192, 105}, {143, 98}, {47, 71}, {47, 71}, {47, 71}}
+  scalars := []int{2, 2, 2, 4, 8}
+  results := [][2]int{{49, 71}, {64, 168}, {36, 111}, {194, 51}, {116, 55}}
+  for index, point := range points {
+	  point, _ := bitcoinlib.NewPointFromInts(prime, point[0], point[1], 0, 7)
+    expected, _ := bitcoinlib.NewPointFromInts(prime, results[index][0], results[index][1], 0, 7) 
+    scalar := scalars[index]
+    result := point.Scale(scalar)
+    if result.Ne(expected) {
+      t.Fatalf("Point %d: Expected %s but got %s", index, expected, result)
+    }
+  } 
 }
+
+func TestScalarInfinityMultiplication(t *testing.T) {
+  prime := 223
+
+  point, _ := bitcoinlib.NewPointFromInts(prime, 47, 71, 0, 7)
+  expected, _ := bitcoinlib.NewInfinitePoint(prime, 0, 7)
+
+  result := point.Scale(21)
+  if result.Ne(expected) {
+    t.Fatalf("Did not get infinity: Expected %s but got %s", expected, result)
+  }
+
+}
+
+
