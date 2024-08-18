@@ -109,6 +109,8 @@ func (i Int) Ge(other Int) bool {
   for index, value := range i.value {
     if value > other.value[index] {
       return true
+    }else if value < other.value[index] {
+      return false
     }
   }
   return false
@@ -147,4 +149,61 @@ func (i Int) Sub(other Int) Int {
     return result
   }
   return result.negate()
+}
+
+//Shifts the number to the right by one
+func (i Int) ShiftRight() Int {
+  var carry uint8
+  shifted := [32]byte{}
+  for index, value := range i.value {
+    shifted[index] = value >> 1
+    shifted[index] += carry
+    if value & 0x01 != 0{
+      carry = 0x80 
+    } else {
+      carry = 0
+    }
+  }
+  return Int{
+    value: shifted,
+  }
+}
+
+func (i Int) Mul(other Int) Int {
+  result := FromInt(0)
+  partial := i 
+  for other.Ge(FromInt(0)) {
+    if other.value[31] & 0x01 == 1 {
+      result = result.Add(partial)
+    }
+    partial = partial.Add(partial) 
+    other = other.ShiftRight()
+  }
+  return result
+}
+
+//Performs integer division for positive numbers
+func (i Int) Div(other Int) Int {
+  if other.Ge(i) {
+    return FromInt(0)
+  }
+  actual := i.ShiftRight()
+  multiplier := FromInt(2)
+  for other.Le(actual) {
+    actual = actual.ShiftRight()
+    multiplier = multiplier.Mul(FromInt(2))
+  }
+  if actual.Eq(other) {
+    return multiplier 
+  }
+  actual = actual.Add(actual)
+  if actual.Geq(other) {
+    return multiplier.Sub(FromInt(1))
+  }
+  return multiplier.Sub(FromInt(2))
+}
+
+//Performs modulus other Integer
+func (i Int) Mod(other Int) Int {
+  return FromInt(0)
 }
