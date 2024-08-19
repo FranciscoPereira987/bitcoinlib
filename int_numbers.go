@@ -11,8 +11,7 @@ type Int struct {
 }
 
 func (i Int) String() string {
-  complement := i.getComplement()
-  return hex.EncodeToString(complement.value[:])
+  return hex.EncodeToString(i.value[:])
 }
 
 func FromInt(value int) Int {
@@ -28,7 +27,7 @@ func FromInt(value int) Int {
     value: buf_converted,
   }
   if original < 0 {
-    result = result.getComplement()
+    result = result.negate()
   }
   return result
 }
@@ -136,10 +135,18 @@ func (i Int) Add(other Int) Int {
 }
 
 func (i Int) negate() Int {
-  i.value[0] = i.value[0] + 0x80
-  complement := i.getComplement()
-  i.value[0] = i.value[0] + 0x80
-  return complement
+  if i.value[0] & 0x80 == 0x80 {
+    return i.getComplement()
+  }else {
+    new_array := [32]byte{}
+    for index, value := range i.value {
+      new_array[index] = ^value
+    }
+    new_value := Int{
+      value: new_array,
+    }
+    return new_value.Add(FromInt(1))
+  }
 }
 
 func (i Int) Sub(other Int) Int {
@@ -148,7 +155,7 @@ func (i Int) Sub(other Int) Int {
   if carry == 1 {
     return result
   }
-  return result.negate()
+  return result
 }
 
 //Shifts the number to the right by one
@@ -196,14 +203,30 @@ func (i Int) Div(other Int) Int {
   if actual.Eq(other) {
     return multiplier 
   }
-  actual = actual.Add(actual)
-  if actual.Geq(other) {
-    return multiplier.Sub(FromInt(1))
+  right_multiplier := multiplier
+  left_multiplier := multiplier.ShiftRight()
+  middle_multiplier := left_multiplier.Add(right_multiplier.Sub(left_multiplier).ShiftRight())
+  for right_multiplier.Ge(left_multiplier.Add(FromInt(1))) {
+    value := other.Mul(middle_multiplier)
+    if value.Le(i) {
+      left_multiplier = middle_multiplier
+    }else if value.Ge(i) {
+      right_multiplier = middle_multiplier 
+    } else {
+      return middle_multiplier 
+    }
+    middle_multiplier = left_multiplier.Add(right_multiplier.Sub(left_multiplier).ShiftRight())
   }
-  return multiplier.Sub(FromInt(2))
+  return middle_multiplier
 }
 
 //Performs modulus other Integer
 func (i Int) Mod(other Int) Int {
-  return FromInt(0)
+  if i.Ne(i.getComplement()) {
+    mul := i.getComplement().Div(other).Add(FromInt(1))
+    i = i.Add(other.Mul(mul)) 
+  }
+  sum := i.Div(other)
+  
+  return i.Sub(other.Mul(sum))
 }

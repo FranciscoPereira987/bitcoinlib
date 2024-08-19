@@ -89,7 +89,7 @@ func (inf *Infinite) SameCurve(other Point) bool {
 }
 
 func (p FinitePoint) evaluatex() *FieldElement {
-	cubed, _ := p.x.Pow(3)
+	cubed, _ := p.x.Pow(FromInt(3))
 	rest, _ := p.a.Mul(p.x)
 	rest, _ = rest.Sum(p.b)
 	result, _ := rest.Sum(*cubed)
@@ -97,7 +97,7 @@ func (p FinitePoint) evaluatex() *FieldElement {
 }
 
 func (p FinitePoint) evaluatey() *FieldElement {
-	result, _ := p.y.Pow(2)
+	result, _ := p.y.Pow(FromInt(2))
 	return result
 }
 
@@ -136,6 +136,22 @@ func NewInfinitePoint(order, a, b int) (Point, error) {
   }, nil
 }
 
+func NewInfinitePointFromInt(order, a, b Int) (Point, error) {
+  a_val, err := NewFieldElementFromInt(order, a)
+  if err != nil {
+    return nil, err
+  }
+  b_val, err := NewFieldElementFromInt(order, b)
+  if err != nil {
+    return nil, err
+  }
+  return &Infinite{
+    a: *a_val,
+    b: *b_val,
+  }, nil
+
+}
+
 func NewPoint(coord Coordinates, a, b FieldElement) (Point, error) {
 	if coord.inf {
 		return &Infinite{a, b}, nil
@@ -170,20 +186,20 @@ func (p *FinitePoint) Ne(other Point) bool {
 
 // Returns a new point when p is added to itself
 func (p *FinitePoint) addOnItself() (Point, error) {
-	if p.y.value == 0 {
+	if p.y.value.Eq(FromInt(0)) {
 		return &Infinite{
       p.a,
       p.b,
     }, nil
 	}
-	three, _ := NewFieldElement(p.x.order, 3)
-	two, _ := NewFieldElement(p.x.order, 2)
-	squared, _ := p.x.Pow(2)
+	three, _ := NewFieldElementFromInt(p.x.order, FromInt(3))
+	two, _ := NewFieldElementFromInt(p.x.order, FromInt(2))
+	squared, _ := p.x.Pow(FromInt(2))
 	multiplied, _ := three.Mul(*squared)
 	summed, _ := multiplied.Sum(p.a)
 	multiplied_y, _ := two.Mul(p.y)
 	s, _ := summed.Div(*multiplied_y)
-	squared, _ = s.Pow(2)
+	squared, _ = s.Pow(FromInt(2))
 	multiplied, _ = two.Mul(p.x)
 	new_x, _ := squared.Sub(*multiplied)
 	sub, _ := p.x.Sub(*new_x)
@@ -202,7 +218,7 @@ func (p *FinitePoint) addOnDifferent(other FinitePoint) (Point, error) {
 	dividend, _ := other.y.Sub(p.y)
 	divisor, _ := other.x.Sub(p.x)
 	s, _ := dividend.Div(*divisor)
-	new_x, _ := s.Pow(2)
+	new_x, _ := s.Pow(FromInt(2))
 	new_x, _ = new_x.Sub(other.x)
 	new_x, _ = new_x.Sub(p.x)
 	new_y, _ := p.x.Sub(*new_x)
@@ -234,7 +250,7 @@ func (p *FinitePoint) Add(other Point) (Point, error) {
 //Multiplies using binary expansion
 func (p *FinitePoint) Scale(by int) Point {
 
-  partial, _ := NewInfinitePoint(p.a.order, p.a.value, p.b.value) 
+  partial, _ := NewInfinitePointFromInt(p.a.order, p.a.value, p.b.value) 
   actual, _ := NewPoint(NewCoordinates(&p.x, &p.y), p.a, p.b)
   for by > 0 {
     //If the current value is one (add the actual number)
