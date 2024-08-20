@@ -48,7 +48,7 @@ func TestAddtion(t *testing.T) {
   for index, a_b := range values {
     result := a_b[0].Add(a_b[1])
     if result.Ne(expected[index]) {
-      t.Fatalf("Expected: %s but got: %s", expected[index].String(), result.String())
+      t.Fatalf("Failed at index %d => Expected: %s but got: %s", index, expected[index].String(), result.String())
     }
   }
 }
@@ -201,3 +201,4 @@ func TestMod(t *testing.T) {
     }
   }
 }
+

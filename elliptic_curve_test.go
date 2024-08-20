@@ -76,4 +76,12 @@ func TestScalarInfinityMultiplication(t *testing.T) {
 
 }
 
+func TestPointOnCurve(t *testing.T) {
+  prime := bitcoinlib.FromArray([4]uint64{0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xfffffffefffffc2f})
+  gx := bitcoinlib.FromHexString("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798").Mod(prime)
+  gy := bitcoinlib.FromHexString("0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8").Mod(prime)
+  left := gy.Mul(gy).Mod(prime)
+  right := gx.Mul(gx).Mod(prime).Mul(gx).Add(bitcoinlib.FromInt(7)).Mod(prime)
+  t.Fatalf("%s == %s\n", left.String(), right.String())
+}
 

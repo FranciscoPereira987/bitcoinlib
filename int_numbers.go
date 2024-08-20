@@ -3,15 +3,17 @@ package bitcoinlib
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
+	"strings"
 )
 
 
 type Int struct {
-  value [32]byte
+  value [80]byte
 }
 
 func (i Int) String() string {
-  return hex.EncodeToString(i.value[:])
+  return hex.EncodeToString(i.value[48:])
 }
 
 func FromInt(value int) Int {
@@ -19,10 +21,10 @@ func FromInt(value int) Int {
   if value < 0 {
     value = -1 *  value
   }
-  buf := make([]byte, 24)
+  buf := make([]byte, 72)
   encoded := uint64(value)  
   buf = binary.BigEndian.AppendUint64(buf, encoded)
-  buf_converted := [32]byte(buf)
+  buf_converted := [80]byte(buf)
   result := Int{
     value: buf_converted,
   }
@@ -32,19 +34,48 @@ func FromInt(value int) Int {
   return result
 }
 
-func FromArray(array [4]uint64) Int {
-  value := []byte{}
+func fromArray(array [10]uint64) Int {
+  value := make([]byte, 0)
   for _, number := range array {
     value = binary.BigEndian.AppendUint64(value, number)
   }
   return Int {
-    value: [32]byte(value),
+    value: [80]byte(value),
+  }
+}
+
+func FromArray(array [4]uint64) Int {
+  value := make([]byte, 48)
+  for _, number := range array {
+    value = binary.BigEndian.AppendUint64(value, number)
+  }
+  return Int {
+    value: [80]byte(value),
+  }
+}
+
+//Expects a string in the format 0x<Number>
+func FromHexString(str string) Int {
+  str = str[2:]
+  value := [80]byte{}
+  if len(str) < (16 * 4) {
+    str = strings.Repeat("0", (16 * 4) - len(str)) + str
+  }else if len(str) > (16 * 4) {
+    str = str[len(str) - (16 * 4):]
+  }
+  total, err := hex.Decode(value[48:], []byte(str))
+  fmt.Printf("Decoded %d from %s\n", total, str)
+  if err != nil || total != 32 {
+    return FromInt(0)
+  }
+  return Int{
+    value: value,
   }
 }
 
 func (i Int) getComplement() Int {
   if i.value[0] & 0x80 == 0x80 {
-    new_array := [32]byte{}
+    new_array := [80]byte{}
     for index, value := range i.value {
       new_array[index] = ^value
     }
@@ -56,17 +87,17 @@ func (i Int) getComplement() Int {
   return i
 }
 
-func (i Int) GetByteRepresentation() [4]uint64{
+func (i Int) GetByteRepresentation() [10]uint64{
   value := i
   reversed :=  []uint64{}
   left := 0
   right := 8
-  for right <= 32 {
+  for right <= 80 {
     reversed = append([]uint64{binary.BigEndian.Uint64(value.value[left:right])}, reversed...)
     left = right
     right += 8
   }
-  return [4]uint64(reversed)
+  return [10]uint64(reversed)
 }
 
 
@@ -126,7 +157,7 @@ i_reversed := i.GetByteRepresentation()
     //fmt.Printf("%d + %d + %d = %d\n", i_value, other_reversed[index], carry, partial)
     final = append([]uint64{partial}, final...)
   }
-  return FromArray([4]uint64(final)), carry
+  return fromArray([10]uint64(final)), carry
 }
 
 func (i Int) Add(other Int) Int {
@@ -138,7 +169,7 @@ func (i Int) negate() Int {
   if i.value[0] & 0x80 == 0x80 {
     return i.getComplement()
   }else {
-    new_array := [32]byte{}
+    new_array := [80]byte{}
     for index, value := range i.value {
       new_array[index] = ^value
     }
@@ -161,7 +192,7 @@ func (i Int) Sub(other Int) Int {
 //Shifts the number to the right by one
 func (i Int) ShiftRight() Int {
   var carry uint8
-  shifted := [32]byte{}
+  shifted := [80]byte{}
   for index, value := range i.value {
     shifted[index] = value >> 1
     shifted[index] += carry
@@ -180,7 +211,7 @@ func (i Int) Mul(other Int) Int {
   result := FromInt(0)
   partial := i 
   for other.Ge(FromInt(0)) {
-    if other.value[31] & 0x01 == 1 {
+    if other.value[79] & 0x01 == 1 {
       result = result.Add(partial)
     }
     partial = partial.Add(partial) 
