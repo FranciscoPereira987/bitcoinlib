@@ -82,6 +82,8 @@ func TestPointOnCurve(t *testing.T) {
   gy := bitcoinlib.FromHexString("0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8").Mod(prime)
   left := gy.Mul(gy).Mod(prime)
   right := gx.Mul(gx).Mod(prime).Mul(gx).Add(bitcoinlib.FromInt(7)).Mod(prime)
-  t.Fatalf("%s == %s\n", left.String(), right.String())
+  if left.Ne(right) {
+    t.Fatalf("Expected equals but got %s != %s", left.String(), right.String())
+  } 
 }
 

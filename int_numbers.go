@@ -3,7 +3,6 @@ package bitcoinlib
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"strings"
 )
 
@@ -64,7 +63,6 @@ func FromHexString(str string) Int {
     str = str[len(str) - (16 * 4):]
   }
   total, err := hex.Decode(value[48:], []byte(str))
-  fmt.Printf("Decoded %d from %s\n", total, str)
   if err != nil || total != 32 {
     return FromInt(0)
   }
