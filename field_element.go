@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+var INVERSE_CACHE map[string]map[string]*FieldElement = map[string]map[string]*FieldElement{}
+
 type FieldElement struct {
 	order Int 
 	value Int
@@ -71,24 +73,29 @@ func (e FieldElement) Mul(other FieldElement) (*FieldElement, error) {
 		return nil, differentFieldsError()
 	}
 	result := e.value.Mul(other.value).Mod(e.order)
-	return NewFieldElementFromInt(e.order, result)
+	return &FieldElement{e.order, result}, nil
 }
 
 func (e FieldElement) Pow(by Int) (*FieldElement, error) {
-	result := FromInt(1) 
-	//I know that a^(p-1) == 1 (mod r)
+	result := ONE 
+  base := e
+  //I know that a^(p-1) == 1 (mod r)
 	//This line allows me then to exponentiate by negative values
-	by = by.Mod(e.order.Sub(FromInt(1)))
-	for by.Ge(FromInt(0)) {
-		result = result.Mul(e.value).Mod(e.order)
-		by = by.Sub(FromInt(1))
-	}
+	by = by.Mod(e.order.Sub(ONE))
+	for by.Ge(ZERO) {
+    if by.value[9] & 1 == 1 {
+      result = result.Mul(base.value).Mod(e.order)
+    }
+		by = by.ShiftRight()
+    base_val, _ := base.Mul(base)
+	  base = *base_val
+  }
 	return NewFieldElementFromInt(e.order, result)
 }
 
 func (e FieldElement) Inverse() *FieldElement {
-	inverse, _ := e.Pow(e.order.Sub(FromInt(2)))
-	return inverse
+  inverse, _ := e.Pow(e.order.Sub(TWO))
+	return inverse 
 }
 
 func (e FieldElement) Div(by FieldElement) (*FieldElement, error) {

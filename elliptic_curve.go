@@ -10,6 +10,7 @@ type Point interface {
 	Ne(other Point) bool
 	Add(other Point) (Point, error)
 	Scale(by int) Point
+  ScaleInt(by Int) Point
 	SameCurve(other Point) bool
 }
 
@@ -82,6 +83,10 @@ func (inf *Infinite) Add(other Point) (Point, error) {
 
 func (inf *Infinite) Scale(by int) Point {
 	return inf
+}
+
+func (inf *Infinite) ScaleInt(by Int) Point {
+  return inf
 }
 
 func (inf *Infinite) SameCurve(other Point) bool {
@@ -186,20 +191,20 @@ func (p *FinitePoint) Ne(other Point) bool {
 
 // Returns a new point when p is added to itself
 func (p *FinitePoint) addOnItself() (Point, error) {
-	if p.y.value.Eq(FromInt(0)) {
+	if p.y.value.Eq(ZERO) {
 		return &Infinite{
       p.a,
       p.b,
     }, nil
 	}
-	three, _ := NewFieldElementFromInt(p.x.order, FromInt(3))
-	two, _ := NewFieldElementFromInt(p.x.order, FromInt(2))
-	squared, _ := p.x.Pow(FromInt(2))
+	three := &FieldElement{p.x.order, THREE}
+	two := &FieldElement{p.x.order, TWO}
+	squared, _ := p.x.Pow(TWO)
 	multiplied, _ := three.Mul(*squared)
 	summed, _ := multiplied.Sum(p.a)
 	multiplied_y, _ := two.Mul(p.y)
 	s, _ := summed.Div(*multiplied_y)
-	squared, _ = s.Pow(FromInt(2))
+	squared, _ = s.Pow(TWO)
 	multiplied, _ = two.Mul(p.x)
 	new_x, _ := squared.Sub(*multiplied)
 	sub, _ := p.x.Sub(*new_x)
@@ -218,7 +223,7 @@ func (p *FinitePoint) addOnDifferent(other FinitePoint) (Point, error) {
 	dividend, _ := other.y.Sub(p.y)
 	divisor, _ := other.x.Sub(p.x)
 	s, _ := dividend.Div(*divisor)
-	new_x, _ := s.Pow(FromInt(2))
+	new_x, _ := s.Pow(TWO)
 	new_x, _ = new_x.Sub(other.x)
 	new_x, _ = new_x.Sub(p.x)
 	new_y, _ := p.x.Sub(*new_x)
@@ -233,7 +238,7 @@ func (p *FinitePoint) addOnDifferent(other FinitePoint) (Point, error) {
 
 func (p *FinitePoint) Add(other Point) (Point, error) {
 	if otherFinite, ok := other.(*FinitePoint); ok {
-		if p.Eq(other) {
+    if p.Eq(other) {
 			return p.addOnItself()
 		}
 		if otherFinite.x.Eq(p.x) {
@@ -249,19 +254,24 @@ func (p *FinitePoint) Add(other Point) (Point, error) {
 
 //Multiplies using binary expansion
 func (p *FinitePoint) Scale(by int) Point {
+  return p.ScaleInt(FromInt(by))
+}
 
+func (p *FinitePoint) ScaleInt(by Int) Point {
+ 
   partial, _ := NewInfinitePointFromInt(p.a.order, p.a.value, p.b.value) 
   actual, _ := NewPoint(NewCoordinates(&p.x, &p.y), p.a, p.b)
-  for by > 0 {
+  for by.Ge(ZERO) {
     //If the current value is one (add the actual number)
-    if by & 1 == 1{
+    if by.value[len(by.value)-1] & 1 == 1{
       partial, _ = actual.Add(partial)
     }
     //Multiplies by two before the shift
+    fmt.Printf("by: %s\n", by.String())
 	  actual, _ = actual.Add(actual)	
-    by = by >> 1
+    by = by.ShiftRight()
 	}
-	return partial
+	return partial  
 }
 
 func (p *FinitePoint) SameCurve(other Point) bool {

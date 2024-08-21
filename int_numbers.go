@@ -3,10 +3,27 @@ package bitcoinlib
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"math/bits"
 	"strings"
 )
 
 var MAX_INT_64 uint64 = 0x8000000000000000
+
+var ZERO Int = Int{
+  value: [10]uint64{},
+} 
+var ONE Int = Int {
+  value: [10]uint64{0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+} 
+var TWO Int = Int {
+  value: [10]uint64{0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+} 
+
+var THREE Int = Int {
+  value: [10]uint64{0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+} 
+
+
 
 type Int struct {
   value [10]uint64
@@ -62,7 +79,7 @@ func FromHexString(str string) Int {
   }
   total, err := hex.Decode(value[48:], []byte(str))
   if err != nil || total != 32 {
-    return FromInt(0)
+    return ZERO 
   }
   result := []uint64{}
   for i := 0; i < 80; i += 8 {
@@ -82,7 +99,7 @@ func (i Int) getComplement() Int {
     new_value := Int{
       value: new_array,
     }
-    return new_value.Add(FromInt(1))
+    return new_value.Add(ONE)
   }
   return i
 }
@@ -97,11 +114,7 @@ func (i Int) GetByteRepresentation() [10]uint64{
 
 
 func addBytes(a uint64, b uint64, carry uint64) (c uint64, res uint64) {
-  res = a + b + carry
-  //The second condition covers the case where a = b = 0xffffffffffffffff and c = 1
-  if (res < a || res < b) || ((res == a) && (b != 0)) {
-    c = 1
-  }
+  res, c = bits.Add64(a, b, carry) 
   return
 }
 
@@ -142,17 +155,15 @@ func (i Int) Ge(other Int) bool {
 }
 
 func (i Int) add(other Int) (Int, uint64) {
-i_reversed := i.GetByteRepresentation()
-  other_reversed := other.GetByteRepresentation()
   var carry uint64
   var partial uint64
-  final := []uint64{}
-  for index, i_value := range i_reversed {
-    carry, partial = addBytes(i_value, other_reversed[index], carry)
+  final := [10]uint64{}
+  for index := len(i.value)-1; index >= 0; index-- {
+    carry, partial = addBytes(i.value[index], other.value[index], carry)
     //fmt.Printf("%d + %d + %d = %d\n", i_value, other_reversed[index], carry, partial)
-    final = append([]uint64{partial}, final...)
+    final[index] = partial 
   }
-  return fromArray([10]uint64(final)), carry
+  return fromArray(final), carry
 }
 
 func (i Int) Add(other Int) Int {
@@ -171,7 +182,7 @@ func (i Int) negate() Int {
     new_value := Int{
       value: new_array,
     }
-    return new_value.Add(FromInt(1))
+    return new_value.Add(ONE)
   }
 }
 
@@ -203,9 +214,9 @@ func (i Int) ShiftRight() Int {
 }
 
 func (i Int) Mul(other Int) Int {
-  result := FromInt(0)
+  result := ZERO 
   partial := i 
-  for other.Ge(FromInt(0)) {
+  for other.Ge(ZERO) {
     if other.value[9] & 0x01 == 1 {
       result = result.Add(partial)
     }
@@ -218,13 +229,13 @@ func (i Int) Mul(other Int) Int {
 //Performs integer division for positive numbers
 func (i Int) Div(other Int) Int {
   if other.Ge(i) {
-    return FromInt(0)
+    return ZERO 
   }
   actual := i.ShiftRight()
-  multiplier := FromInt(2)
+  multiplier := TWO 
   for other.Le(actual) {
     actual = actual.ShiftRight()
-    multiplier = multiplier.Mul(FromInt(2))
+    multiplier = multiplier.Mul(TWO)
   }
   if actual.Eq(other) {
     return multiplier 
@@ -232,7 +243,7 @@ func (i Int) Div(other Int) Int {
   right_multiplier := multiplier
   left_multiplier := multiplier.ShiftRight()
   middle_multiplier := left_multiplier.Add(right_multiplier.Sub(left_multiplier).ShiftRight())
-  for right_multiplier.Ge(left_multiplier.Add(FromInt(1))) {
+  for right_multiplier.Ge(left_multiplier.Add(ONE)) {
     value := other.Mul(middle_multiplier)
     if value.Le(i) {
       left_multiplier = middle_multiplier
@@ -249,7 +260,7 @@ func (i Int) Div(other Int) Int {
 //Performs modulus other Integer
 func (i Int) Mod(other Int) Int {
   if i.Ne(i.getComplement()) {
-    mul := i.getComplement().Div(other).Add(FromInt(1))
+    mul := i.getComplement().Div(other).Add(ONE)
     i = i.Add(other.Mul(mul)) 
   }
   sum := i.Div(other)
