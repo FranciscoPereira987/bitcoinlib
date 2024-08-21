@@ -100,6 +100,8 @@ func TestPointOrder(t *testing.T) {
   g, _ := bitcoinlib.NewPoint(bitcoinlib.NewCoordinates(x, y), *zero, *seven)
   n := bitcoinlib.FromHexString("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141")
     
-  t.Fatalf("%t\n", g.ScaleInt(n).Eq(infinity))
+  if g.ScaleInt(n).Ne(infinity) {
+    t.Fatal("End result was not as expected")
+  }
 }
 
