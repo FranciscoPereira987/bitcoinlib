@@ -6,13 +6,18 @@ import (
 	"strings"
 )
 
+var MAX_INT_64 uint64 = 0x8000000000000000
 
 type Int struct {
-  value [80]byte
+  value [10]uint64
 }
 
 func (i Int) String() string {
-  return hex.EncodeToString(i.value[48:])
+  representation := []byte{}
+  for _, value := range i.value[6:] {
+    representation = binary.BigEndian.AppendUint64(representation, value)
+  }
+  return hex.EncodeToString(representation)
 }
 
 func FromInt(value int) Int {
@@ -20,12 +25,11 @@ func FromInt(value int) Int {
   if value < 0 {
     value = -1 *  value
   }
-  buf := make([]byte, 72)
+  buf := [10]uint64{}
   encoded := uint64(value)  
-  buf = binary.BigEndian.AppendUint64(buf, encoded)
-  buf_converted := [80]byte(buf)
+  buf[9] = encoded
   result := Int{
-    value: buf_converted,
+    value: buf,
   }
   if original < 0 {
     result = result.negate()
@@ -34,22 +38,16 @@ func FromInt(value int) Int {
 }
 
 func fromArray(array [10]uint64) Int {
-  value := make([]byte, 0)
-  for _, number := range array {
-    value = binary.BigEndian.AppendUint64(value, number)
-  }
   return Int {
-    value: [80]byte(value),
+    value: array,
   }
 }
 
 func FromArray(array [4]uint64) Int {
-  value := make([]byte, 48)
-  for _, number := range array {
-    value = binary.BigEndian.AppendUint64(value, number)
-  }
+  value := make([]uint64, 6)
+  
   return Int {
-    value: [80]byte(value),
+    value: [10]uint64(append(value, array[:]...)),
   }
 }
 
@@ -66,14 +64,18 @@ func FromHexString(str string) Int {
   if err != nil || total != 32 {
     return FromInt(0)
   }
+  result := []uint64{}
+  for i := 0; i < 80; i += 8 {
+    result = append(result, binary.BigEndian.Uint64(value[i:i+8]))
+  }
   return Int{
-    value: value,
+    value:  [10]uint64(result),
   }
 }
 
 func (i Int) getComplement() Int {
-  if i.value[0] & 0x80 == 0x80 {
-    new_array := [80]byte{}
+  if i.value[0] & MAX_INT_64 == MAX_INT_64 {
+    new_array := [10]uint64{}
     for index, value := range i.value {
       new_array[index] = ^value
     }
@@ -86,16 +88,11 @@ func (i Int) getComplement() Int {
 }
 
 func (i Int) GetByteRepresentation() [10]uint64{
-  value := i
-  reversed :=  []uint64{}
-  left := 0
-  right := 8
-  for right <= 80 {
-    reversed = append([]uint64{binary.BigEndian.Uint64(value.value[left:right])}, reversed...)
-    left = right
-    right += 8
+  reversed :=  [10]uint64{}
+  for index := 0; index < 10; index++ {
+    reversed[index] = i.value[9-index]
   }
-  return [10]uint64(reversed)
+  return reversed
 }
 
 
@@ -164,10 +161,10 @@ func (i Int) Add(other Int) Int {
 }
 
 func (i Int) negate() Int {
-  if i.value[0] & 0x80 == 0x80 {
+  if i.value[0] & MAX_INT_64 == MAX_INT_64 {
     return i.getComplement()
   }else {
-    new_array := [80]byte{}
+    new_array := [10]uint64{}
     for index, value := range i.value {
       new_array[index] = ^value
     }
@@ -189,13 +186,13 @@ func (i Int) Sub(other Int) Int {
 
 //Shifts the number to the right by one
 func (i Int) ShiftRight() Int {
-  var carry uint8
-  shifted := [80]byte{}
+  var carry uint64
+  shifted := [10]uint64{}
   for index, value := range i.value {
     shifted[index] = value >> 1
     shifted[index] += carry
     if value & 0x01 != 0{
-      carry = 0x80 
+      carry = MAX_INT_64 
     } else {
       carry = 0
     }
@@ -209,7 +206,7 @@ func (i Int) Mul(other Int) Int {
   result := FromInt(0)
   partial := i 
   for other.Ge(FromInt(0)) {
-    if other.value[79] & 0x01 == 1 {
+    if other.value[9] & 0x01 == 1 {
       result = result.Add(partial)
     }
     partial = partial.Add(partial) 

@@ -33,7 +33,7 @@ func TestAddition(t *testing.T) {
 	prime := 223
 	additions := [][4]int{{170, 142, 60, 139}, {47, 71, 17, 56}, {143, 98, 76, 66}}
 	results := [][2]int{{220, 181}, {215, 68}, {47, 71}}
-	for index, points := range additions {
+  for index, points := range additions {
 		point_a, _ := bitcoinlib.NewPointFromInts(prime, points[0], points[1], 0, 7)
 		point_b, _ := bitcoinlib.NewPointFromInts(prime, points[2], points[3], 0, 7)
 		expected, _ := bitcoinlib.NewPointFromInts(prime, results[index][0], results[index][1], 0, 7)
@@ -86,4 +86,3 @@ func TestPointOnCurve(t *testing.T) {
     t.Fatalf("Expected equals but got %s != %s", left.String(), right.String())
   } 
 }
-
