@@ -53,7 +53,7 @@ func differentFieldsError() error {
 }
 
 func (e FieldElement) Sum(other FieldElement) (*FieldElement, error) {
-	if e.order != other.order {
+	if e.order.Ne(other.order) {
 		return nil, differentFieldsError()
 	}
 	result := e.value.Add(other.value).Mod(e.order)
@@ -61,7 +61,7 @@ func (e FieldElement) Sum(other FieldElement) (*FieldElement, error) {
 }
 
 func (e FieldElement) Sub(other FieldElement) (*FieldElement, error) {
-	if e.order != other.order {
+	if e.order.Ne(other.order) {
 		return nil, differentFieldsError()
 	}
 	result := e.value.Sub(other.value).Mod(e.order)
@@ -69,7 +69,8 @@ func (e FieldElement) Sub(other FieldElement) (*FieldElement, error) {
 }
 
 func (e FieldElement) Mul(other FieldElement) (*FieldElement, error) {
-	if e.order != other.order {
+	if e.order.Ne(other.order)  {
+    
 		return nil, differentFieldsError()
 	}
 	result := e.value.Mul(other.value).Mod(e.order)
@@ -77,20 +78,10 @@ func (e FieldElement) Mul(other FieldElement) (*FieldElement, error) {
 }
 
 func (e FieldElement) Pow(by Int) (*FieldElement, error) {
-	result := ONE 
-  base := e
-  //I know that a^(p-1) == 1 (mod r)
-	//This line allows me then to exponentiate by negative values
-	by = by.Mod(e.order.Sub(ONE))
-	for by.Ge(ZERO) {
-    if by.value[9] & 1 == 1 {
-      result = result.Mul(base.value).Mod(e.order)
-    }
-		by = by.ShiftRight()
-    base_val, _ := base.Mul(base)
-	  base = *base_val
-  }
-	return NewFieldElementFromInt(e.order, result)
+  result := e.value.Exp(by, e.order)
+  
+  final, err := NewFieldElementFromInt(e.order, result)
+  return final, err
 }
 
 func (e FieldElement) Inverse() *FieldElement {
@@ -99,7 +90,8 @@ func (e FieldElement) Inverse() *FieldElement {
 }
 
 func (e FieldElement) Div(by FieldElement) (*FieldElement, error) {
-	if e.order != by.order {
+	if e.order.Ne(by.order) {
+    
 		return nil, differentFieldsError()
 	}
 	byInverted := by.Inverse()

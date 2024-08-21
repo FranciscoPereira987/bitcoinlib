@@ -89,29 +89,7 @@ values := [][2]bitcoinlib.Int{{
   }
 }
 
-func TestShift(t *testing.T)  {
-  cases := []bitcoinlib.Int{
-    bitcoinlib.FromInt(1),
-    bitcoinlib.FromInt(2),
-    bitcoinlib.FromArray([4]uint64{0, 0, 1, 0}),
-    bitcoinlib.FromArray([4]uint64{1, 1, 1, 1}),
-  }
 
-  expected := []bitcoinlib.Int{
-    bitcoinlib.FromInt(0),
-    bitcoinlib.FromInt(1),
-    bitcoinlib.FromArray([4]uint64{0, 0, 0, 0x8000000000000000}),
-    bitcoinlib.FromArray([4]uint64{0, 0x8000000000000000, 0x8000000000000000, 0x8000000000000000}),
-  }
-
-  for index, value := range cases {
-    result := value.ShiftRight()
-    if result.Ne(expected[index]) {
-      t.Fatalf("Failed at index: %d. Expected %s but got %s", index, expected[index].String(), result.String())
-    }
-  }
-
-}
 
 func TestMultiplication(t *testing.T) {
   cases := []bitcoinlib.Int{
@@ -168,7 +146,7 @@ func TestDivision(t *testing.T) {
     bitcoinlib.FromInt(2),
     bitcoinlib.FromInt(7),
     bitcoinlib.FromInt(288230376151711744),
-    bitcoinlib.FromArray([4]uint64{0x7fffffffffffffff, 0, 0, 0}).ShiftRight(),
+    bitcoinlib.FromArray([4]uint64{0x7fffffffffffffff, 0, 0, 0}).Div(bitcoinlib.TWO),
   }
 
   for index, value := range cases {
@@ -178,7 +156,7 @@ func TestDivision(t *testing.T) {
     }
   }
 }
-/*
+
 func TestMod(t *testing.T) {
   cases := []bitcoinlib.Int{
     bitcoinlib.FromInt(0),
@@ -208,4 +186,4 @@ func TestMod(t *testing.T) {
     }
   }
 }
-*/
+

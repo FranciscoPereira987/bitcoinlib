@@ -263,13 +263,12 @@ func (p *FinitePoint) ScaleInt(by Int) Point {
   actual, _ := NewPoint(NewCoordinates(&p.x, &p.y), p.a, p.b)
   for by.Ge(ZERO) {
     //If the current value is one (add the actual number)
-    if by.value[len(by.value)-1] & 1 == 1{
+    if by.Mod(TWO).Eq(ONE){
       partial, _ = actual.Add(partial)
     }
     //Multiplies by two before the shift
-    fmt.Printf("by: %s\n", by.String())
 	  actual, _ = actual.Add(actual)	
-    by = by.ShiftRight()
+    by = by.Div(TWO)
 	}
 	return partial  
 }

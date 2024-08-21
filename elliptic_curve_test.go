@@ -96,10 +96,10 @@ func TestPointOrder(t *testing.T) {
   y, _ := bitcoinlib.NewFieldElementFromInt(prime, gy)
   seven, _ := bitcoinlib.NewFieldElementFromInt(prime, bitcoinlib.FromInt(7))
   zero, _ := bitcoinlib.NewFieldElementFromInt(prime, bitcoinlib.FromInt(0))
-
+  infinity, _ := bitcoinlib.NewInfinitePointFromInt(prime, bitcoinlib.FromInt(0), bitcoinlib.FromInt(7))
   g, _ := bitcoinlib.NewPoint(bitcoinlib.NewCoordinates(x, y), *zero, *seven)
   n := bitcoinlib.FromHexString("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141")
     
-  t.Fatalf("%s\n", g.ScaleInt(n))
+  t.Fatalf("%t\n", g.ScaleInt(n).Eq(infinity))
 }
 
