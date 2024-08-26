@@ -5,6 +5,8 @@ package bitcoinlib
 var PRIME Int = FromHexString("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f")
 var ORDER Int = FromHexString("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141")
 
+var SQRT_EXP Int = PRIME.Add(ONE).Div(FOUR)
+
 func A() *FieldElement {
   a, _ := NewS256Field(FromInt(0))
   return a
@@ -44,6 +46,22 @@ func NewS256Point(x Int, y Int) (Point, error) {
 func NewS256Infinite() Point {
   val, _ := NewInfinitePointFromInt(PRIME, FromInt(0), FromInt(7))
   return val
+}
+
+func solveY(x Int, even bool) Point {
+  alpha := x.Exp(THREE, PRIME).Add(B().value)
+  beta := alpha.Exp(SQRT_EXP, PRIME)
+  even_beta := beta
+  odd_beta := PRIME.Sub(beta).Mod(PRIME)
+  if beta.Mod(TWO).Eq(ONE) {
+    even_beta, odd_beta = odd_beta, even_beta 
+  }
+  if even {
+    result, _ :=  NewS256Point(x, even_beta)
+    return result
+  }
+  result, _ := NewS256Point(x, odd_beta)
+  return result
 }
 
 //Wraps Scalar of Point

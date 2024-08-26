@@ -9,6 +9,8 @@ import (
 
 var MAX_INT_64 uint64 = 0x8000000000000000
 
+var MAX_INT_32 string = "0xffffffffffffffffffffffffffffffffffffffffffffffff"
+
 var ZERO Int = Int{
   value: big.NewInt(0),
 } 
@@ -23,6 +25,9 @@ var THREE Int = Int {
   value: big.NewInt(3),
 } 
 
+var FOUR Int = Int {
+  value: big.NewInt(4),
+}
 
 
 type Int struct {
