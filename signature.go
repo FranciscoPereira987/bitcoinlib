@@ -35,7 +35,7 @@ type PrivateKey struct {
 }
 
 func NewSignature(r, s Int, p Point) *Signature {
-  s = s.Exp(ORDER.Sub(TWO), ORDER)
+  s = s.ExpNeg(ORDER)
   return &Signature{
     r,
     s,
@@ -100,6 +100,22 @@ func parseUncompressed(stream []byte) (Point, error) {
   x := FromHexString(hex.EncodeToString(x_stream))
   y := FromHexString(hex.EncodeToString(y_stream))
   return NewS256Point(x, y)
+}
+
+func encodeIntToDer(value Int) []byte {
+  buf := make([]byte, 32)
+  value.value.FillBytes(buf)
+  if len(buf) > 0 && buf[0] & 0x80 != 0 {
+    buf = append([]byte{0}, buf...)
+  }
+  start := []byte{0x02, byte(len(buf))}
+  return append(start, buf...)
+}
+
+func (sg *Signature) Der() []byte {
+  der := encodeIntToDer(sg.r)
+  der = append(der, encodeIntToDer(sg.s.ExpNeg(ORDER))...)
+  return append([]byte{0x30, byte(len(der))}, der...)
 }
 
 func (p *PrivateKey) Sec(secType SecStart) []byte {

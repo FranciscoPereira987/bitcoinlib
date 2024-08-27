@@ -73,9 +73,11 @@ func FromHexString(str string) Int {
   for i := 80; i > 0; i -= 8 {
     result = append(result, big.Word(binary.BigEndian.Uint64(value[i-8:i])))
   }
-  return Int{
+  
+  number :=  Int{
     value:  big.NewInt(0).SetBits(result),
   }
+  return number
 }
 
 func (i Int) Eq(other Int) bool {
@@ -139,4 +141,8 @@ func (i Int) Exp(other Int, mod Int) Int {
   return Int{
     value: big.NewInt(0).Exp(i.value, other.value, mod.value),
   }
+}
+
+func (i Int) ExpNeg(base Int) Int {
+  return i.Exp(base.Sub(TWO), base)
 }
