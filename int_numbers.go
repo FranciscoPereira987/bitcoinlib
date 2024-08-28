@@ -143,6 +143,7 @@ func (i Int) Exp(other Int, mod Int) Int {
   }
 }
 
+//Raises a number by -1
 func (i Int) ExpNeg(base Int) Int {
   return i.Exp(base.Sub(TWO), base)
 }
