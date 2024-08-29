@@ -12,10 +12,11 @@ var F8 Int = FromInt(58)
 
 func IntoBase58(num string) string {
   leading_zeroes := 0
-  for  ;num[leading_zeroes] == '0'; leading_zeroes++ {}
-  prefix := strings.Repeat("1", leading_zeroes)
+  for  ;num[leading_zeroes] == '0' && num[leading_zeroes+1] == '0'; leading_zeroes += 2 {}
+  prefix := strings.Repeat("1", leading_zeroes / 2)
   result := ""
   number, _ := hex.DecodeString(num)
+
   int_num := Int{
     value: big.NewInt(0).SetBytes(number),
   }

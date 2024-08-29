@@ -98,3 +98,31 @@ func TestDerValues(t *testing.T) {
     }
   }
 }
+
+
+func TestAddresses(t *testing.T) {
+  keys := []*bitcoinlib.PrivateKey{
+    bitcoinlib.NewPrivateKey(bitcoinlib.FromInt(5002)),
+    bitcoinlib.NewPrivateKey(bitcoinlib.FromInt(2020).Exp(bitcoinlib.FromInt(5), bitcoinlib.PRIME)),
+    bitcoinlib.NewPrivateKey(bitcoinlib.FromHexString("0x12345deadbeef")),
+  }
+  compression := []bitcoinlib.SecStart{
+    bitcoinlib.UNCOMPRESSED,
+    bitcoinlib.COMPRESSED,
+    bitcoinlib.COMPRESSED,
+  }
+  net := []bool{true, true, false}
+  results := []string{
+    "mmTPbXQFxboEtNRkwfh6K51jvdtHLxGeMA",
+    "mopVkxp8UhXqRYbCYJsbeE1h1fiF64jcoH",
+    "1F1Pn2y6pDb68E5nYJJeba4TLg2U7B6KF1",
+  }
+  for index, value := range keys {
+    result := value.Address(compression[index], net[index])
+    expected := results[index]
+    if result != expected {
+      t.Fatalf("Failed at index %d\nExpected => %s\nGot => %s", index, expected, result)
+    }
+
+  }
+}

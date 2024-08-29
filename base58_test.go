@@ -14,7 +14,7 @@ func TestConversionFromHexValues(t *testing.T) {
 	expectedResults := []string{
 		"9MA8fRQrT4u8Zj8ZRd6MAiiyaxb2Y1CMpvVkHQu5hVM6",
 		"EQJsjkd6JaGwxrjEhfeqPenqHwrBmPQZjJGNSCHBkcF7",
-    "4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd",
+    	"4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd",
 	}
 
 	for index, value := range values {
