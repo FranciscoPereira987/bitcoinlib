@@ -2,6 +2,8 @@ package bitcoinlib
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
+	"math/big"
 
 	"golang.org/x/crypto/ripemd160"
 )
@@ -41,6 +43,37 @@ func Hash256(from []byte) []byte {
   first_round := sha256.Sum256(from)
   second_round := sha256.Sum256(first_round[:])
   return second_round[:]
+}
+
+func FromLittleEndian(value []byte) Int {
+  if len(value) % 8 != 0 {
+    padding := make([]byte, 8 - (len(value) %8))
+    value = append(value, padding...)
+  }
+  result := make([]uint64, len(value) / 8)
+  for i := 0; i < len(value) - 8; i += 8 {
+    right := len(value) - i
+    left := len(value) - i - 8
+    result[i] = binary.LittleEndian.Uint64(value[left:right])
+  }
+  int_bytes := make([]byte, 0)
+  for len(result) > 0 {
+    int_bytes = binary.BigEndian.AppendUint64(int_bytes, result[0])
+    result = result[1:]
+  }
+  return Int {
+    value: big.NewInt(0).SetBytes(int_bytes),
+  }
+}
+
+func IntoLittleEndian(value Int) []byte {
+  int_bytes := value.IntoBytes()
+  result := make([]byte, 0)
+  for slice := int_bytes[:]; len(slice) > 0; {
+    new_value := binary.BigEndian.Uint64(slice)
+    result = binary.BigEndian.AppendUint64(result, new_value)
+  }
+  return result
 }
 
 func NewS256Field(value Int) (*FieldElement, error) {
