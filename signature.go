@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
-
-	"golang.org/x/crypto/ripemd160"
 )
 
 type SecStart uint8
@@ -52,22 +50,13 @@ func NewPrivateKey(e Int) *PrivateKey {
 
 func Address(point Point, secType SecStart, testnet bool) string {
 	secVal := sec(point, secType)
-	ripe := ripemd160.New()
-	hasher := sha256.New()
-	pre_hashed := sha256.Sum256(secVal)
-	ripe.Write(pre_hashed[:])
-	hashed := ripe.Sum(nil)
+	hashed := Hash160(secVal)
 	prefix := []byte{0x00}
 	if testnet {
 		prefix[0] = 0x6f
 	}
 	hashed = append(prefix, hashed...)
-	hasher.Reset()
-	hasher.Write(hashed[:])
-	checksum := hasher.Sum(nil)
-	hasher.Reset()
-	hasher.Write(checksum[:])
-	checksum = hasher.Sum(nil)
+	checksum := Hash256(hashed)
 	hashed = append(hashed, checksum[:4]...)
 	return IntoBase58(hex.EncodeToString(hashed))
 }
@@ -163,6 +152,24 @@ func (p *PrivateKey) Sec(secType SecStart) []byte {
 
 func (p *PrivateKey) Address(secType SecStart, testnet bool) string {
 	return Address(p.p, secType, testnet)
+}
+
+func (p *PrivateKey) WIF(secType SecStart, testnet bool) string {
+	wif := []byte{0x80}
+	num := p.e.IntoBytes()
+	suffix := []byte{}
+	if testnet {
+		wif[0] = 0xef
+	}
+	if secType != UNCOMPRESSED {
+		suffix = append(suffix, 0x01)
+	}
+	wif = append(wif, num[:]...)
+	wif = append(wif, suffix...)
+	
+	checksum := Hash256(wif)
+	wif = append(wif, checksum[:4]...)
+	return IntoBase58(hex.EncodeToString(wif))
 }
 
 func GetR(k Int) Int {

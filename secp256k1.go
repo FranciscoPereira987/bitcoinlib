@@ -1,5 +1,11 @@
 package bitcoinlib
 
+import (
+	"crypto/sha256"
+
+	"golang.org/x/crypto/ripemd160"
+)
+
 
 
 var PRIME Int = FromHexString("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f")
@@ -22,6 +28,19 @@ func G() Point {
   gy := FromHexString("0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8")
   val, _ := NewS256Point(gx, gy)
   return val
+}
+
+func Hash160(from []byte) []byte {
+  ripe := ripemd160.New()
+  intermediate := sha256.Sum256(from)
+  ripe.Write(intermediate[:])
+  return ripe.Sum(nil)
+}
+
+func Hash256(from []byte) []byte {
+  first_round := sha256.Sum256(from)
+  second_round := sha256.Sum256(first_round[:])
+  return second_round[:]
 }
 
 func NewS256Field(value Int) (*FieldElement, error) {
