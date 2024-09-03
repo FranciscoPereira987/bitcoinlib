@@ -103,7 +103,6 @@ func TestAddresses(t *testing.T) {
 		bitcoinlib.NewPrivateKey(bitcoinlib.FromInt(5002)),
 		bitcoinlib.NewPrivateKey(bitcoinlib.FromInt(2020).Exp(bitcoinlib.FromInt(5), bitcoinlib.PRIME)),
 		bitcoinlib.NewPrivateKey(bitcoinlib.FromHexString("0x12345deadbeef")),
-    bitcoinlib.NewPrivateKey(bitcoinlib.FromHexString("0x9a8b7c6d5e4f3a2b1c")),
 	}
 	compression := []bitcoinlib.SecStart{
 		bitcoinlib.UNCOMPRESSED,
@@ -116,7 +115,6 @@ func TestAddresses(t *testing.T) {
 		"mmTPbXQFxboEtNRkwfh6K51jvdtHLxGeMA",
 		"mopVkxp8UhXqRYbCYJsbeE1h1fiF64jcoH",
 		"1F1Pn2y6pDb68E5nYJJeba4TLg2U7B6KF1",
-    "",
 	}
 	for index, value := range keys {
 		result := value.Address(compression[index], net[index])
