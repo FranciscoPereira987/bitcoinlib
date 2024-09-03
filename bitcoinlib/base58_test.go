@@ -1,7 +1,7 @@
 package bitcoinlib_test
 
 import (
-	"bitcoinlib"
+	"bitcoinlib/bitcoinlib"
 	"testing"
 )
 

@@ -1,7 +1,7 @@
 package bitcoinlib_test
 
 import (
-	"bitcoinlib"
+	"bitcoinlib/bitcoinlib"
 	"testing"
 )
 
@@ -15,6 +15,7 @@ func compare(a [4]uint64, b [4]uint64) bool {
 }
 
 func TestRepresentation(t *testing.T) {
+  
   values := []bitcoinlib.Int{
     bitcoinlib.FromInt(1),
   }
