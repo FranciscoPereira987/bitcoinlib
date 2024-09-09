@@ -39,3 +39,13 @@ func ParseScript(from io.Reader) (*Script, error) {
     hex.EncodeToString(buf),
   }, err
 }
+
+func (t *Script) Serialize() []byte {
+  val, _ := hex.DecodeString(t.input)
+  return val
+}
+
+func (t *ScriptPubKey) Serialize() []byte {
+  val, _ := hex.DecodeString(t.input)
+  return val
+}
