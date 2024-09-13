@@ -5,7 +5,6 @@ import "slices"
 
 type Operation interface {
   Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool
-  IsValid() bool //Returns true if its not the empty byte string
   Num() int
 }
 
@@ -78,9 +77,6 @@ func (t *OP_0) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_0) IsValid() bool {
-  return false
-}
 
 func (t *OP_0) Num() int {
   return 0
@@ -93,12 +89,6 @@ func (t *OP_1Negate) Operate(z string, stack *Stack, altstack *Stack, cmds *Stac
   return true
 }
 
-//TODO: Check if this is Valid (Or if just 1 should be valid)
-func (t *OP_1Negate) IsValid() bool {
-  return false
-}
-
-
 func (t *OP_1Negate) Num() int {
   return 79
 }
@@ -109,10 +99,6 @@ type OP_1 struct {}
 func (t *OP_1) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_1) IsValid() bool {
-  return true 
 }
 
 
@@ -128,11 +114,6 @@ func (t *OP_2) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_2) IsValid() bool {
-  return false 
-}
-
-
 func (t *OP_2) Num() int {
   return 82 
 }
@@ -143,10 +124,6 @@ type OP_3 struct {}
 func (t *OP_3) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_3) IsValid() bool {
-  return false 
 }
 
 func (t *OP_3) Num() int {
@@ -160,11 +137,6 @@ func (t *OP_4) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_4) IsValid() bool {
-  return false 
-}
-
-
 func (t *OP_4) Num() int {
   return 84 
 }
@@ -175,10 +147,6 @@ type OP_5 struct {}
 func (t *OP_5) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_5) IsValid() bool {
-  return false 
 }
 
 func (t *OP_5) Num() int {
@@ -192,9 +160,6 @@ func (t *OP_6) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_6) IsValid() bool {
-  return false 
-}
 
 func (t *OP_6) Num() int {
   return 86 
@@ -207,9 +172,6 @@ func (t *OP_7) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_7) IsValid() bool {
-  return false 
-}
 
 func (t *OP_7) Num() int {
   return 87 
@@ -222,10 +184,6 @@ func (t *OP_8) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) boo
   return true
 }
 
-func (t *OP_8) IsValid() bool {
-  return false 
-}
-
 
 func (t *OP_8) Num() int {
   return 88 
@@ -236,10 +194,6 @@ type OP_9 struct {}
 func (t *OP_9) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_9) IsValid() bool {
-  return false 
 }
 
 
@@ -255,9 +209,6 @@ func (t *OP_10) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   return true
 }
 
-func (t *OP_10) IsValid() bool {
-  return false 
-}
 
 func (t *OP_10) Num() int {
   return 90 
@@ -269,10 +220,6 @@ type OP_11 struct {}
 func (t *OP_11) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_11) IsValid() bool {
-  return false 
 }
 
 func (t *OP_11) Num() int {
@@ -287,14 +234,9 @@ func (t *OP_12) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   return true
 }
 
-func (t *OP_12) IsValid() bool {
-  return false 
-}
-
 func (t *OP_12) Num() int {
   return 92 
 }
-
 
 type OP_13 struct {}
 
@@ -303,24 +245,15 @@ func (t *OP_13) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   return true
 }
 
-func (t *OP_13) IsValid() bool {
-  return false 
-}
-
 func (t *OP_13) Num() int {
   return 93 
 }
-
 
 type OP_14 struct {}
 
 func (t *OP_14) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   *stack = append(*stack, t)
   return true
-}
-
-func (t *OP_14) IsValid() bool {
-  return false 
 }
 
 func (t *OP_14) Num() int {
@@ -335,10 +268,6 @@ func (t *OP_15) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   return true
 }
 
-func (t *OP_15) IsValid() bool {
-  return false 
-}
-
 func (t *OP_15) Num() int {
   return 95 
 }
@@ -351,10 +280,6 @@ func (t *OP_16) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   return true
 }
 
-func (t *OP_16) IsValid() bool {
-  return false 
-}
-
 func (t *OP_16) Num() int {
   return 96 
 }
@@ -364,10 +289,6 @@ type OP_NOP struct {}
 
 func (t *OP_NOP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   return true
-}
-
-func (t *OP_NOP) IsValid() bool {
-  return false 
 }
 
 func (t *OP_NOP) Num() int {
@@ -389,8 +310,7 @@ func (t *OP_IF) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   numEndifsNeeded := 1
   currentArray := &trueItems
   for Len(cmds) > 0 {
-    item := (*cmds)[0]
-    *cmds = (*cmds)[1:]
+    item := Pop(cmds) 
     if item.Num() == 99 || item.Num() == 100 {
       // Nested if
       numEndifsNeeded++
@@ -414,15 +334,11 @@ func (t *OP_IF) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bo
   }
   element := Pop(stack)
   if element.Num() == 0 {
-    *cmds = append(falseItems, (*cmds)...)
+    *cmds = append(*cmds, falseItems...)
   }else {
-    *cmds = append(trueItems, (*cmds)...)
+    *cmds = append(*cmds, trueItems...)
   }
   return true
-}
-
-func (t *OP_IF) IsValid() bool {
-  return false
 }
 
 func (t *OP_IF) Num() int {
@@ -431,7 +347,7 @@ func (t *OP_IF) Num() int {
 
 type OP_NOTIF struct{}
 
-
+//Same as OP_IF, but switches the branches that are reinserted into cmds 
 func (t *OP_NOTIF) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
   if len(*stack) < 1 {
     return false
@@ -442,8 +358,7 @@ func (t *OP_NOTIF) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack)
   numEndifsNeeded := 1
   currentArray := &trueItems
   for Len(cmds) > 0 {
-    item := (*cmds)[0]
-    *cmds = (*cmds)[1:]
+    item := Pop(cmds) 
     if item.Num() == 99 || item.Num() == 100 {
       // Nested if
       numEndifsNeeded++
@@ -467,29 +382,116 @@ func (t *OP_NOTIF) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack)
   }
   element := Pop(stack)
   if element.Num() == 0 {
-    *cmds = append(trueItems, (*cmds)...)
+    *cmds = append(*cmds, trueItems...)
   }else {
-    *cmds = append(falseItems, (*cmds)...)
+    *cmds = append(*cmds, falseItems...)
   }
   return true
-}
-
-func (t *OP_NOTIF) IsValid() bool {
-  return false
 }
 
 func (t *OP_NOTIF) Num() int {
   return 100
 }
 
+type OP_VERIFY struct {}
+
+func (t *OP_VERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  return element.Num() != 0 
+}
+
+func (t *OP_VERIFY) Num() int {
+  return 105
+}
+
+type OP_RETURN struct {}
 
 
+func (t *OP_RETURN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  return false
+}
+
+func (t *OP_RETURN) Num() int {
+  return 106
+}
+
+type OP_TOALTSTACK struct {}
 
 
+func (t *OP_TOALTSTACK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(altstack) < 1 {
+    return false
+  }
+  Push(altstack, Pop(stack))
+  return true
+}
+
+func (t *OP_TOALTSTACK) Num() int {
+  return 107
+}
+
+type OP_FROMALTSTACK struct {}
 
 
+func (t *OP_FROMALTSTACK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(altstack) < 1 {
+    return false
+  }
+  Push(stack, Pop(altstack))
+  return true
+}
+
+func (t *OP_FROMALTSTACK) Num() int {
+  return 108
+}
+
+type OP_2DROP struct {}
 
 
+func (t *OP_2DROP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  Pop(stack)
+  Pop(stack)
+  return true
+}
+
+func (t *OP_2DROP) Num() int {
+  return 109
+}
+
+type OP_2DUP struct {}
 
 
+func (t *OP_2DUP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-2])
+  Push(stack, (*stack)[Len(stack)-2])
+  return true 
+}
 
+func (t *OP_2DUP) Num() int {
+  return 110
+}
+
+type OP_3DUP struct {}
+
+func (t *OP_3DUP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 3 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-3])
+  Push(stack, (*stack)[Len(stack)-3])
+  Push(stack, (*stack)[Len(stack)-3])
+  return true 
+}
+
+func (t *OP_3DUP) Num() int {
+  return 111
+}
