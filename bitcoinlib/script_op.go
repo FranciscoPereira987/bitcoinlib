@@ -27,6 +27,34 @@ func Len(st *Stack) int {
   return len(*st)
 }
 
+type ScriptVal struct {
+  Val []byte
+}
+
+//This value should not be operated with
+func (t *ScriptVal) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  return false
+}
+
+//Need to add this method to have duck typing
+//with the rest of the operation type
+func (t *ScriptVal) Num() int {
+  return -1
+}
+
+//Utility function to get the 
+//number value out of an operation
+//I need this function for numbers
+//that happen to be valid operation
+//numbers as well
+func intoValue(val Operation) int {
+  dVal, ok := val.(*ScriptVal)
+  if ok {
+    return int(decodeNum(dVal.Val).value.Int64())
+  }
+  return val.Num()
+}
+
 func encodeNum(num Int) []byte {
   if num.Eq(ZERO) {
     return []byte{}
@@ -494,4 +522,276 @@ func (t *OP_3DUP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 
 func (t *OP_3DUP) Num() int {
   return 111
+}
+
+type OP_2OVER struct {}
+
+func (t *OP_2OVER) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 4 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-4])
+  Push(stack, (*stack)[Len(stack)-4])
+  return true
+}
+
+func (t *OP_2OVER) Num() int {
+  return 112
+}
+
+type OP_2ROT struct {}
+
+func (t *OP_2ROT) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 6 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-6])
+  Push(stack, (*stack)[Len(stack)-6])
+  return true
+}
+
+func (t *OP_2ROT) Num() int {
+  return 113
+}
+
+type OP_2SWAP struct {}
+
+func (t *OP_2SWAP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 4 {
+    return false
+  }
+  last := Len(stack)
+  (*stack)[last-2], (*stack)[last-1], (*stack)[last-4], (*stack)[last-3] = (*stack)[last-4], (*stack)[last-3], (*stack)[last-2], (*stack)[last-1] 
+  return true
+}
+
+func (t *OP_2SWAP) Num() int {
+  return 114
+}
+
+type OP_IFDUP struct {}
+
+func (t *OP_IFDUP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  if (*stack)[Len(stack)-1].Num() != 0 {
+    Push(stack, (*stack)[Len(stack)-1])
+  }
+  return true
+}
+
+func (t *OP_IFDUP) Num() int {
+  return 115
+}
+
+type OP_DEPTH struct {}
+
+//Define how I should take care of random
+//values (items of different length and how to process them)
+func (t *OP_DEPTH) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  val := encodeNum(FromInt(Len(stack)))
+  Push(stack, &ScriptVal{val})
+  return true
+}
+
+func (t *OP_DEPTH) Num() int {
+  return 116
+}
+
+type OP_DROP struct {}
+
+func (t *OP_DROP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  Pop(stack)
+  return true
+}
+
+func (t *OP_DROP) Num() int {
+  return 117
+}
+
+type OP_NIP struct {}
+
+func (t *OP_NIP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  first := Pop(stack)
+  //Drop the second value
+  Pop(stack)
+  Push(stack, first)
+  return true
+}
+
+func (t *OP_NIP) Num() int {
+  return 118
+}
+
+type OP_OVER struct {}
+
+func (t *OP_OVER) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-2])
+  return true
+}
+
+func (t *OP_OVER) Num() int {
+  return 119
+}
+
+type OP_PICK struct {}
+
+func (t *OP_PICK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  n := intoValue(Pop(stack))
+  if Len(stack) < n + 1 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-(n+1)])
+  return true
+}
+
+func (t *OP_PICK) Num() int {
+  return 120
+}
+
+type OP_ROLL struct {}
+
+func (t *OP_ROLL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  n := intoValue(Pop(stack))
+  if Len(stack) < n + 1 {
+    return false
+  }
+  if n == 0 {
+    return true
+  }
+  rolled := (*stack)[Len(stack)-(n+1)]
+  (*stack) = append((*stack)[:Len(stack)-(n+1)], (*stack)[Len(stack)-n:]...)
+  Push(stack, rolled)
+  return true
+}
+
+func (t *OP_ROLL) Num() int {
+  return 121
+}
+
+type OP_ROT struct {}
+
+func (t *OP_ROT) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 3 {
+    return false
+  }
+  edge := Len(stack)-3
+  rolled := (*stack)[edge]
+  (*stack) = append((*stack)[:edge], (*stack)[edge+1:]...)
+  Push(stack, rolled)
+  return true
+}
+
+func (t *OP_ROT) Num() int {
+  return 122
+}
+
+type OP_SWAP struct {}
+
+func (t *OP_SWAP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  (*stack)[Len(stack)-2], (*stack)[Len(stack)-1] = (*stack)[Len(stack)-1], (*stack)[Len(stack)-2]
+  return true
+}
+
+func (t *OP_SWAP) Num() int {
+  return 123
+}
+
+type OP_TUCK struct {}
+
+func (t *OP_TUCK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-1])
+  (*stack)[Len(stack)-3], (*stack)[Len(stack)-2] = (*stack)[Len(stack)-2], (*stack)[Len(stack)-3]
+  return true
+}
+
+func (t *OP_TUCK) Num() int {
+  return 124
+}
+
+type OP_SIZE struct {}
+
+func (t *OP_SIZE) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  last := Pop(stack)
+  size := 1
+  //I suppose values that are not Script
+  //vals have a length of 1
+  if val, ok := last.(*ScriptVal); ok {
+    size = len(val.Val)
+  }
+  val := &ScriptVal{
+    encodeNum(FromInt(size)),
+  }
+  Push(stack, last)
+  Push(stack, val)
+  return true
+}
+
+func (t *OP_SIZE) Num() int {
+  return 125
+}
+
+type OP_EQUAL struct {}
+
+func (t *OP_EQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  first := Pop(stack)
+  second := Pop(stack)
+  valFirst, ok1 := first.(*ScriptVal)
+  valSecond, ok2 := second.(*ScriptVal)
+  trueVal := first == second
+  if ok1 && ok2 {
+    trueVal = decodeNum(valFirst.Val).Eq(decodeNum(valSecond.Val))
+  }
+  if trueVal {
+    //TODO: Should change it to get the value 
+    //from the master table
+    Push(stack, &OP_1{})
+  }else {
+    Push(stack, &OP_2{})
+  }
+  return true
+}
+
+func (t *OP_EQUAL) Num() int {
+  return 126
+}
+
+type OP_EQUALVERIFY struct {}
+
+func (t *OP_EQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  eq := &OP_EQUAL{}
+  verify := &OP_VERIFY{}
+  return eq.Operate(z, stack, altstack, cmds) && verify.Operate(z, stack, altstack, cmds)
+}
+
+func (t *OP_EQUALVERIFY) Num() int {
+  return 127
 }
