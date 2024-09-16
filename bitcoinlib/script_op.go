@@ -1,6 +1,10 @@
 package bitcoinlib
 
-import "slices"
+import (
+	"crypto/sha1"
+	"crypto/sha256"
+	"slices"
+)
 
 
 type Operation interface {
@@ -766,7 +770,7 @@ func (t *OP_EQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack)
   second := Pop(stack)
   valFirst, ok1 := first.(*ScriptVal)
   valSecond, ok2 := second.(*ScriptVal)
-  trueVal := first == second
+  trueVal := first.Num() == second.Num()
   if ok1 && ok2 {
     trueVal = decodeNum(valFirst.Val).Eq(decodeNum(valSecond.Val))
   }
@@ -795,3 +799,590 @@ func (t *OP_EQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *
 func (t *OP_EQUALVERIFY) Num() int {
   return 127
 }
+
+type OP_1ADD struct {}
+
+func (t *OP_1ADD) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := intoValue(Pop(stack))
+  result := &ScriptVal{
+    encodeNum(FromInt(element+1)),
+  }
+  Push(stack, result)
+  return true
+}
+
+func (t *OP_1ADD) Num() int {
+  return 128
+}
+
+type OP_1SUB struct {}
+
+func (t *OP_1SUB) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := intoValue(Pop(stack))
+  result := &ScriptVal{
+    encodeNum(FromInt(element-1)),
+  }
+  Push(stack, result)
+  return true
+}
+
+func (t *OP_1SUB) Num() int {
+  return 129
+}
+
+type OP_NEGATE struct{}
+
+func (t *OP_NEGATE) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := intoValue(Pop(stack))
+  result := &ScriptVal{
+    encodeNum(FromInt(-element)),
+  }
+  Push(stack, result)
+  return true
+}
+
+func (t *OP_NEGATE) Num() int {
+  return 130
+}
+
+type OP_ABS struct {}
+
+func (t *OP_ABS) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := intoValue(Pop(stack))
+  result := &ScriptVal{
+    encodeNum(FromInt(element)),
+  }
+  if element < 0 {
+    result.Val = encodeNum(FromInt(-element))
+  }
+  return true
+}
+
+func (t *OP_ABS) Num() int {
+  return 131
+}
+
+type OP_NOT struct {}
+
+func (t *OP_NOT) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  if intoValue(element) == 0{
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_NOT) Num() int {
+  return 132
+}
+
+type OP_0NOTEQUAL struct {}
+
+func (t *OP_0NOTEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  if intoValue(element) == 0 {
+    Push(stack, &ScriptVal {
+      encodeNum(ZERO),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }
+  return true
+}
+func (t *OP_0NOTEQUAL) Num() int {
+  return 132
+}
+
+type OP_ADD struct {}
+
+func (t *OP_ADD) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  Push(stack, &ScriptVal{
+    encodeNum(FromInt(element1+element2)),
+  })
+  return true
+}
+
+func (t *OP_ADD) Num() int {
+  return 133
+}
+
+type OP_SUB struct {}
+
+func (t *OP_SUB) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  Push(stack, &ScriptVal{
+    encodeNum(FromInt(element2-element1)),
+  })
+  return true
+}
+
+func (t *OP_SUB) Num() int {
+  return 134
+}
+
+type OP_MUL struct {}
+
+func (t *OP_MUL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  Push(stack, &ScriptVal{
+    encodeNum(FromInt(element2 * element1)),
+  })
+  return true
+}
+
+func (t *OP_MUL) Num() int {
+  return 135
+}
+
+type OP_BOOLAND struct {}
+
+func (t *OP_BOOLAND) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 + element2 >= 2 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_BOOLAND) Num() int {
+  return 136
+}
+
+type OP_BOOLOR struct{}
+
+func (t *OP_BOOLOR) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 + element2 > 0 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_BOOLOR) Num() int {
+  return 137
+}
+
+type OP_NUMEQUAL struct {}
+
+
+func (t *OP_NUMEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 == element2 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_NUMEQUAL) Num() int {
+  return 138
+}
+
+type OP_NUMEQUALVERIFY struct{}
+
+
+func (t *OP_NUMEQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  equal := &OP_NUMEQUAL{}
+  verify := &OP_VERIFY{}
+  return equal.Operate(z, stack, altstack, cmds) && verify.Operate(z, stack, altstack, cmds)
+}
+
+func (t *OP_NUMEQUALVERIFY) Num() int {
+  return 139
+}
+
+type OP_NUMNOTEQUAL struct {}
+
+func (t *OP_NUMNOTEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 == element2 {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }
+  return true
+}
+
+func (t *OP_NUMNOTEQUAL) Num() int {
+  return 140
+}
+
+type OP_LESSTHAN struct {}
+
+
+func (t *OP_LESSTHAN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element2 < element1 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_LESSTHAN) Num() int {
+  return 141
+}
+
+type OP_GREATERTHAN struct {}
+
+
+func (t *OP_GREATERTHAN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element2 > element1 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_GREATERTHAN) Num() int {
+  return 142
+}
+
+type OP_LESSTHANOREQUAL struct {}
+
+
+func (t *OP_LESSTHANOREQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element2 <= element1 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_LESSTHANOREQUAL) Num() int {
+  return 143
+}
+
+type OP_GREATERTHANOREQUAL struct {}
+
+
+func (t *OP_GREATERTHANOREQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element2 >= element1 {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_GREATERTHANOREQUAL) Num() int {
+  return 144
+}
+
+type OP_MIN struct {}
+
+
+func (t *OP_MIN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 < element2 {
+    Push(stack, &ScriptVal{
+      encodeNum(FromInt(element1)),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(FromInt(element2)),
+    })
+  }
+  return true
+}
+
+func (t *OP_MIN) Num() int {
+  return 145
+}
+
+type OP_MAX struct {}
+
+
+func (t *OP_MAX) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  element1 := intoValue(Pop(stack))
+  element2 := intoValue(Pop(stack))
+  if element1 > element2 {
+    Push(stack, &ScriptVal{
+      encodeNum(FromInt(element1)),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(FromInt(element2)),
+    })
+  }
+  return true
+}
+
+func (t *OP_MAX) Num() int {
+  return 146
+}
+
+type OP_WITHIN struct {}
+
+
+func (t *OP_WITHIN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 3 {
+    return false
+  }
+  maximum := intoValue(Pop(stack))
+  minimum := intoValue(Pop(stack))
+  element := intoValue(Pop(stack))
+  if element < maximum && element >= minimum {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_WITHIN) Num() int {
+  return 147
+}
+
+type OP_RIPEMD160 struct {}
+
+
+func (t *OP_RIPEMD160) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  val, ok := element.(*ScriptVal)
+  if !ok {
+    val = &ScriptVal{
+      encodeNum(FromInt(element.Num())),
+    }
+  }
+  hashed := Hash160(val.Val)
+  Push(stack, &ScriptVal{
+    hashed,
+  })
+  return true
+}
+
+func (t *OP_RIPEMD160) Num() int {
+  return 147
+}
+
+type OP_SHA1 struct {}
+
+
+func (t *OP_SHA1) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  val, ok := element.(*ScriptVal)
+  if !ok {
+    val = &ScriptVal{
+      encodeNum(FromInt(element.Num())),
+    }
+  }
+  sha := sha1.New()
+  sha.Write(val.Val)
+  Push(stack, &ScriptVal{
+    sha.Sum(nil),
+  })
+  return true
+}
+
+func (t *OP_SHA1) Num() int {
+  return 148
+}
+
+type OP_SHA256 struct {}
+
+
+func (t *OP_SHA256) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  val, ok := element.(*ScriptVal)
+  if !ok {
+    val = &ScriptVal{
+      encodeNum(FromInt(element.Num())),
+    }
+  }
+  sha := sha256.New()
+  sha.Write(val.Val)
+  Push(stack, &ScriptVal{
+    sha.Sum(nil),
+  })
+  return true
+}
+
+func (t *OP_SHA256) Num() int {
+  return 149
+}
+
+type OP_HASH160 struct {}
+
+
+func (t *OP_HASH160) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  val, ok := element.(*ScriptVal)
+  if !ok {
+    val = &ScriptVal{
+      encodeNum(FromInt(element.Num())),
+    }
+  }
+  Push(stack, &ScriptVal{
+    Hash160(val.Val),
+  })
+  return true
+}
+
+func (t *OP_HASH160) Num() int {
+  return 150
+}
+
+type OP_HASH256 struct {}
+
+
+func (t *OP_HASH256) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  element := Pop(stack)
+  val, ok := element.(*ScriptVal)
+  if !ok {
+    val = &ScriptVal{
+      encodeNum(FromInt(element.Num())),
+    }
+  }
+  Push(stack, &ScriptVal{
+    Hash256(val.Val),
+  })
+  return true
+}
+
+func (t *OP_HASH256) Num() int {
+  return 151
+}
+
+
