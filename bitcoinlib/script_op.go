@@ -6,6 +6,93 @@ import (
 	"slices"
 )
 
+var OP_CODE_FUNCTIONS map[int]Operation = map[int]Operation{
+  0: &OP_0{},
+  79: &OP_NEGATE{},
+  81: &OP_1{},
+  82: &OP_2{},
+  83: &OP_3{},
+  84: &OP_4{},
+  85: &OP_5{},
+  86: &OP_6{},
+  87: &OP_7{},
+  88: &OP_8{},
+  89: &OP_9{},
+  90: &OP_10{},
+  91: &OP_11{},
+  92: &OP_12{},
+  93: &OP_13{},
+  94: &OP_14{},
+  95: &OP_15{},
+  96: &OP_16{},
+  97: &OP_NOP{},
+  99: &OP_IF{},
+  100: &OP_NOTIF{},
+  105: &OP_VERIFY{},
+  106: &OP_RETURN{},
+  107: &OP_TOALTSTACK{},
+  108: &OP_FROMALTSTACK{},
+  109: &OP_2DROP{},
+  110: &OP_2DUP{},
+  111: &OP_3DUP{},
+  112: &OP_2OVER{},
+  113: &OP_2ROT{},
+  114: &OP_2SWAP{},
+  115: &OP_IFDUP{},
+  116: &OP_DEPTH{},
+  117: &OP_DROP{},
+  118: &OP_DUP{},
+  119: &OP_NIP{},
+  120: &OP_OVER{},
+  121: &OP_PICK{},
+  122: &OP_ROLL{},
+  123: &OP_ROT{},
+  124: &OP_SWAP{},
+  125: &OP_TUCK{},
+  130: &OP_SIZE{},
+  135: &OP_EQUAL{},
+  136: &OP_EQUALVERIFY{},
+  139: &OP_1ADD{},
+  140: &OP_1SUB{},
+  143: &OP_NEGATE{},
+  144: &OP_ABS{},
+  145: &OP_NOT{},
+  146: &OP_0NOTEQUAL{},
+  147: &OP_ADD{},
+  148: &OP_SUB{},
+  149: &OP_MUL{},
+  154: &OP_BOOLAND{},
+  155: &OP_BOOLOR{},
+  156: &OP_NUMEQUAL{},
+  157: &OP_NUMEQUALVERIFY{},
+  158: &OP_NUMNOTEQUAL{},
+  159: &OP_LESSTHAN{},
+  160: &OP_GREATERTHAN{},
+  161: &OP_LESSTHANOREQUAL{},
+  162: &OP_GREATERTHANOREQUAL{},
+  163: &OP_MIN{},
+  164: &OP_MAX{},
+  165: &OP_WITHIN{},
+  166: &OP_RIPEMD160{},
+  167: &OP_SHA1{},
+  168: &OP_SHA256{},
+  169: &OP_HASH160{},
+  170: &OP_HASH256{},
+  172: &OP_CHECKSIG{},
+  173: &OP_CHECKSIGVERIFY{},
+  174: &OP_CHECKMULTISIG{},
+  175: &OP_CHECKMULTISIGVERIFY{},
+  176: &OP_NOP{},
+  177: &OP_CHECKLOCKTIMEVERIFY{},
+  178: &OP_CHECKSEQUENCEVERIFY{},
+  179: &OP_NOP{},
+  180: &OP_NOP{},
+  181: &OP_NOP{},
+  182: &OP_NOP{},
+  183: &OP_NOP{},
+  184: &OP_NOP{},
+  185: &OP_NOP{},
+}
 
 type Operation interface {
   Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool
@@ -617,6 +704,20 @@ func (t *OP_DROP) Num() int {
   return 117
 }
 
+type OP_DUP struct {}
+
+func (t *OP_DUP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 1 {
+    return false
+  }
+  Push(stack, (*stack)[Len(stack)-1])
+  return true
+}
+
+func (t *OP_DUP) Num() int {
+  return 118
+}
+
 type OP_NIP struct {}
 
 func (t *OP_NIP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
@@ -631,7 +732,7 @@ func (t *OP_NIP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_NIP) Num() int {
-  return 118
+  return 119
 }
 
 type OP_OVER struct {}
@@ -645,7 +746,7 @@ func (t *OP_OVER) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_OVER) Num() int {
-  return 119
+  return 120
 }
 
 type OP_PICK struct {}
@@ -663,7 +764,7 @@ func (t *OP_PICK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_PICK) Num() int {
-  return 120
+  return 121
 }
 
 type OP_ROLL struct {}
@@ -686,7 +787,7 @@ func (t *OP_ROLL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_ROLL) Num() int {
-  return 121
+  return 122
 }
 
 type OP_ROT struct {}
@@ -703,7 +804,7 @@ func (t *OP_ROT) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_ROT) Num() int {
-  return 122
+  return 123
 }
 
 type OP_SWAP struct {}
@@ -717,7 +818,7 @@ func (t *OP_SWAP) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_SWAP) Num() int {
-  return 123
+  return 124
 }
 
 type OP_TUCK struct {}
@@ -732,7 +833,7 @@ func (t *OP_TUCK) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_TUCK) Num() int {
-  return 124
+  return 125
 }
 
 type OP_SIZE struct {}
@@ -757,7 +858,7 @@ func (t *OP_SIZE) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_SIZE) Num() int {
-  return 125
+  return 130
 }
 
 type OP_EQUAL struct {}
@@ -785,7 +886,7 @@ func (t *OP_EQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack)
 }
 
 func (t *OP_EQUAL) Num() int {
-  return 126
+  return 135
 }
 
 type OP_EQUALVERIFY struct {}
@@ -797,7 +898,7 @@ func (t *OP_EQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *
 }
 
 func (t *OP_EQUALVERIFY) Num() int {
-  return 127
+  return 136
 }
 
 type OP_1ADD struct {}
@@ -815,7 +916,7 @@ func (t *OP_1ADD) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_1ADD) Num() int {
-  return 128
+  return 139
 }
 
 type OP_1SUB struct {}
@@ -833,7 +934,7 @@ func (t *OP_1SUB) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_1SUB) Num() int {
-  return 129
+  return 140
 }
 
 type OP_NEGATE struct{}
@@ -851,7 +952,7 @@ func (t *OP_NEGATE) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack
 }
 
 func (t *OP_NEGATE) Num() int {
-  return 130
+  return 143
 }
 
 type OP_ABS struct {}
@@ -871,7 +972,7 @@ func (t *OP_ABS) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_ABS) Num() int {
-  return 131
+  return 144
 }
 
 type OP_NOT struct {}
@@ -894,7 +995,7 @@ func (t *OP_NOT) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_NOT) Num() int {
-  return 132
+  return 145
 }
 
 type OP_0NOTEQUAL struct {}
@@ -916,7 +1017,7 @@ func (t *OP_0NOTEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *St
   return true
 }
 func (t *OP_0NOTEQUAL) Num() int {
-  return 132
+  return 146
 }
 
 type OP_ADD struct {}
@@ -934,7 +1035,7 @@ func (t *OP_ADD) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_ADD) Num() int {
-  return 133
+  return 147
 }
 
 type OP_SUB struct {}
@@ -952,7 +1053,7 @@ func (t *OP_SUB) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_SUB) Num() int {
-  return 134
+  return 148
 }
 
 type OP_MUL struct {}
@@ -970,7 +1071,7 @@ func (t *OP_MUL) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_MUL) Num() int {
-  return 135
+  return 149
 }
 
 type OP_BOOLAND struct {}
@@ -994,7 +1095,7 @@ func (t *OP_BOOLAND) Operate(z string, stack *Stack, altstack *Stack, cmds *Stac
 }
 
 func (t *OP_BOOLAND) Num() int {
-  return 136
+  return 154
 }
 
 type OP_BOOLOR struct{}
@@ -1019,7 +1120,7 @@ func (t *OP_BOOLOR) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack
 }
 
 func (t *OP_BOOLOR) Num() int {
-  return 137
+  return 155
 }
 
 type OP_NUMEQUAL struct {}
@@ -1044,7 +1145,7 @@ func (t *OP_NUMEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *Sta
 }
 
 func (t *OP_NUMEQUAL) Num() int {
-  return 138
+  return 156
 }
 
 type OP_NUMEQUALVERIFY struct{}
@@ -1057,7 +1158,7 @@ func (t *OP_NUMEQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmd
 }
 
 func (t *OP_NUMEQUALVERIFY) Num() int {
-  return 139
+  return 157
 }
 
 type OP_NUMNOTEQUAL struct {}
@@ -1081,7 +1182,7 @@ func (t *OP_NUMNOTEQUAL) Operate(z string, stack *Stack, altstack *Stack, cmds *
 }
 
 func (t *OP_NUMNOTEQUAL) Num() int {
-  return 140
+  return 158
 }
 
 type OP_LESSTHAN struct {}
@@ -1106,7 +1207,7 @@ func (t *OP_LESSTHAN) Operate(z string, stack *Stack, altstack *Stack, cmds *Sta
 }
 
 func (t *OP_LESSTHAN) Num() int {
-  return 141
+  return 159
 }
 
 type OP_GREATERTHAN struct {}
@@ -1131,7 +1232,7 @@ func (t *OP_GREATERTHAN) Operate(z string, stack *Stack, altstack *Stack, cmds *
 }
 
 func (t *OP_GREATERTHAN) Num() int {
-  return 142
+  return 160
 }
 
 type OP_LESSTHANOREQUAL struct {}
@@ -1156,7 +1257,7 @@ func (t *OP_LESSTHANOREQUAL) Operate(z string, stack *Stack, altstack *Stack, cm
 }
 
 func (t *OP_LESSTHANOREQUAL) Num() int {
-  return 143
+  return 161
 }
 
 type OP_GREATERTHANOREQUAL struct {}
@@ -1181,7 +1282,7 @@ func (t *OP_GREATERTHANOREQUAL) Operate(z string, stack *Stack, altstack *Stack,
 }
 
 func (t *OP_GREATERTHANOREQUAL) Num() int {
-  return 144
+  return 162
 }
 
 type OP_MIN struct {}
@@ -1206,7 +1307,7 @@ func (t *OP_MIN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_MIN) Num() int {
-  return 145
+  return 163
 }
 
 type OP_MAX struct {}
@@ -1231,7 +1332,7 @@ func (t *OP_MAX) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) b
 }
 
 func (t *OP_MAX) Num() int {
-  return 146
+  return 164
 }
 
 type OP_WITHIN struct {}
@@ -1257,7 +1358,7 @@ func (t *OP_WITHIN) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack
 }
 
 func (t *OP_WITHIN) Num() int {
-  return 147
+  return 165
 }
 
 type OP_RIPEMD160 struct {}
@@ -1282,7 +1383,7 @@ func (t *OP_RIPEMD160) Operate(z string, stack *Stack, altstack *Stack, cmds *St
 }
 
 func (t *OP_RIPEMD160) Num() int {
-  return 147
+  return 166
 }
 
 type OP_SHA1 struct {}
@@ -1308,7 +1409,7 @@ func (t *OP_SHA1) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) 
 }
 
 func (t *OP_SHA1) Num() int {
-  return 148
+  return 167
 }
 
 type OP_SHA256 struct {}
@@ -1334,7 +1435,7 @@ func (t *OP_SHA256) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack
 }
 
 func (t *OP_SHA256) Num() int {
-  return 149
+  return 168
 }
 
 type OP_HASH160 struct {}
@@ -1358,7 +1459,7 @@ func (t *OP_HASH160) Operate(z string, stack *Stack, altstack *Stack, cmds *Stac
 }
 
 func (t *OP_HASH160) Num() int {
-  return 150
+  return 169
 }
 
 type OP_HASH256 struct {}
@@ -1382,7 +1483,7 @@ func (t *OP_HASH256) Operate(z string, stack *Stack, altstack *Stack, cmds *Stac
 }
 
 func (t *OP_HASH256) Num() int {
-  return 151
+  return 170
 }
 
 type OP_CHECKSIG struct {}
@@ -1420,7 +1521,7 @@ func (t *OP_CHECKSIG) Operate(z string, stack *Stack, altstack *Stack, cmds *Sta
 }
 
 func (t *OP_CHECKSIG) Num() int {
-  return 152
+  return 172
 }
 
 type OP_CHECKSIGVERIFY struct {}
@@ -1433,7 +1534,7 @@ func (t *OP_CHECKSIGVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmd
 }
 
 func (t *OP_CHECKSIGVERIFY) Num() int {
-  return 153
+  return 173
 }
 
 type OP_CHECKMULTISIG struct {}
@@ -1444,7 +1545,7 @@ func (t *OP_CHECKMULTISIG) Operate(z string, stack *Stack, altstack *Stack, cmds
 }
 
 func (t *OP_CHECKMULTISIG) Num() int {
-  return 154
+  return 174
 }
 
 type OP_CHECKMULTISIGVERIFY struct {}
@@ -1457,7 +1558,7 @@ func (t *OP_CHECKMULTISIGVERIFY) Operate(z string, stack *Stack, altstack *Stack
 }
 
 func (t *OP_CHECKMULTISIGVERIFY) Num() int {
-  return 154
+  return 175
 }
 
 type OP_CHECKLOCKTIMEVERIFY struct {}
@@ -1468,7 +1569,7 @@ func (t *OP_CHECKLOCKTIMEVERIFY) Operate(z string, stack *Stack, altstack *Stack
 }
 
 func (t *OP_CHECKLOCKTIMEVERIFY) Num() int {
-  return 155
+  return 177
 }
 
 
@@ -1480,7 +1581,7 @@ func (t *OP_CHECKSEQUENCEVERIFY) Operate(z string, stack *Stack, altstack *Stack
 }
 
 func (t *OP_CHECKSEQUENCEVERIFY) Num() int {
-  return 155
+  return 178
 }
 
 
