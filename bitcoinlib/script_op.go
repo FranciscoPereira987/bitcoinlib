@@ -1385,4 +1385,103 @@ func (t *OP_HASH256) Num() int {
   return 151
 }
 
+type OP_CHECKSIG struct {}
+
+
+func (t *OP_CHECKSIG) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  if Len(stack) < 2 {
+    return false
+  }
+  secOP := Pop(stack)
+  derOP := Pop(stack)
+  sec, okSEC := secOP.(*ScriptVal)
+  der, okDER := derOP.(*ScriptVal)
+  if !(okDER && okSEC) {
+    return false
+  }
+  secP, err := ParseFromSec(sec.Val)
+  if err != nil {
+    return false
+  }
+  sign, err := ParseFromDer(secP, der.Val[:len(der.Val)-1])
+  if err != nil {
+    return false
+  }
+  if sign.Verify(FromHexString("0x" + z)) {
+    Push(stack, &ScriptVal{
+      encodeNum(ONE),
+    })
+  }else {
+    Push(stack, &ScriptVal{
+      encodeNum(ZERO),
+    })
+  }
+  return true
+}
+
+func (t *OP_CHECKSIG) Num() int {
+  return 152
+}
+
+type OP_CHECKSIGVERIFY struct {}
+
+
+func (t *OP_CHECKSIGVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  check := &OP_CHECKSIG{}
+  verify := &OP_VERIFY{}
+  return check.Operate(z, stack, altstack, cmds) && verify.Operate(z, stack, altstack, cmds)
+}
+
+func (t *OP_CHECKSIGVERIFY) Num() int {
+  return 153
+}
+
+type OP_CHECKMULTISIG struct {}
+
+
+func (t *OP_CHECKMULTISIG) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  return false
+}
+
+func (t *OP_CHECKMULTISIG) Num() int {
+  return 154
+}
+
+type OP_CHECKMULTISIGVERIFY struct {}
+
+
+func (t *OP_CHECKMULTISIGVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  check := &OP_CHECKMULTISIG{}
+  verify := &OP_VERIFY{}
+  return check.Operate(z, stack, altstack, cmds) && verify.Operate(z, stack, altstack, cmds)
+}
+
+func (t *OP_CHECKMULTISIGVERIFY) Num() int {
+  return 154
+}
+
+type OP_CHECKLOCKTIMEVERIFY struct {}
+
+func (t *OP_CHECKLOCKTIMEVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  //TODO: Check how to implement this
+  return true
+}
+
+func (t *OP_CHECKLOCKTIMEVERIFY) Num() int {
+  return 155
+}
+
+
+type OP_CHECKSEQUENCEVERIFY struct {}
+
+func (t *OP_CHECKSEQUENCEVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+  //TODO: Check how to implement this
+  return true
+}
+
+func (t *OP_CHECKSEQUENCEVERIFY) Num() int {
+  return 155
+}
+
+
 

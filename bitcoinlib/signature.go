@@ -129,6 +129,38 @@ func (sg *Signature) Der() []byte {
 	return append([]byte{0x30, byte(len(der))}, der...)
 }
 
+func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
+  if sign[0] != 0x03 {
+    return nil, errors.New("Invalid der signature")
+  }
+  sign = sign[1:]
+  if len(sign[1:]) != int(sign[0]) {
+    return nil, errors.New("Invalid der signature length")
+  }
+  sign = sign[1:]
+  marker := sign[0]
+  if marker != 0x02 {
+    return nil, errors.New("Invalid marker")
+  }
+  rLength := sign[1]
+  sign = sign[2:]
+  r := sign[:rLength]
+  sign = sign[rLength:]
+  marker = sign[0]
+  if marker != 0x02 {
+    return nil, errors.New("Invalid marker")
+  }
+  sLength := sign[1]
+  sign = sign[2:]
+  s := sign[:sLength]
+  return &Signature{
+    s: FromLittleEndian(s),
+    r: FromLittleEndian(r),
+    p: pubkey,
+  }, nil
+
+}
+
 func sec(p Point, secType SecStart) []byte {
 	if point, ok := p.(*FinitePoint); ok {
 		switch secType {
