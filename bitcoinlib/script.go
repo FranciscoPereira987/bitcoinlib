@@ -13,6 +13,7 @@ type Script struct {
 
 type ScriptPubKey struct {
 	input []byte
+  cmds []Operation
 }
 
 func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
@@ -20,22 +21,22 @@ func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
 	buf := make([]byte, length)
 	total, err := from.Read(buf)
 	if total < int(length) {
-		err = errors.Join(err, errors.New("Invalid Script length decoded for pub key"))
+		err = errors.Join(err, errors.New("invalid Script length decoded for pub key"))
+    return nil, err
+  }
+	cmds, err := parseScriptFromBytes(buf)
+	if err != nil {
+		return nil, err
 	}
 	return &ScriptPubKey{
 		buf,
+		cmds,
 	}, err
 }
 
-func ParseScript(from io.Reader) (*Script, error) {
-	length := ReadVarInt(from)
-	buf := make([]byte, length)
-	total, err := from.Read(buf)
-	if total < int(length) {
-		err = errors.Join(err, errors.New(
-			fmt.Sprintf("Invalid Script length decoded: %d != %d", total, length)))
-	}
+func parseScriptFromBytes(buf []byte) ([]Operation, error) {
 	cmds := []Operation{}
+	total := len(buf)
 	index := 0
 	for index < total {
 		current := buf[index]
@@ -73,6 +74,18 @@ func ParseScript(from io.Reader) (*Script, error) {
 	if index != len(buf) {
 		return nil, errors.New("failed to parse script")
 	}
+	return cmds, nil
+}
+
+func ParseScript(from io.Reader) (*Script, error) {
+	length := ReadVarInt(from)
+	buf := make([]byte, length)
+	total, err := from.Read(buf)
+	if total < int(length) {
+		err = errors.Join(err, errors.New(
+			fmt.Sprintf("invalid Script length decoded: %d != %d", total, length)))
+	}
+	cmds, err := parseScriptFromBytes(buf)
 	return &Script{
 		buf,
 		cmds,
