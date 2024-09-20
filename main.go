@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	passkey := "RandomPasskey"
+	passkey := "randomPassword"
 	hashed := bitcoinlib.Hash256([]byte(passkey))
 	key := bitcoinlib.NewPrivateKey(bitcoinlib.FromHexString(hex.EncodeToString(hashed)))
 	fmt.Println(key.Address(bitcoinlib.COMPRESSED, true))
