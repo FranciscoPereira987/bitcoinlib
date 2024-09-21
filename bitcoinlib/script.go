@@ -1,18 +1,17 @@
 package bitcoinlib
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 )
 
 type Script struct {
-	input []byte
 	cmds  []Operation
 }
 
 type ScriptPubKey struct {
-	input []byte
   cmds []Operation
 }
 
@@ -29,9 +28,30 @@ func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
 		return nil, err
 	}
 	return &ScriptPubKey{
-		buf,
 		cmds,
 	}, err
+}
+
+func serializeScriptToBytes(cmds []Operation) []byte {
+  result := make([]byte, 0)
+  for _, op := range cmds {
+    if val, ok := op.(*ScriptVal); ok {
+      //If its a ScriptVal then its a value
+      length := len(val.Val)
+      if length < 75 {
+        result = append(result, byte(length))
+      }else if length < 256 {
+        result = append(result, 76, byte(length))
+      }else if length < 520 {
+        result = append(result, 77)
+        result = binary.LittleEndian.AppendUint16(result, uint16(length))
+      }
+      result = append(result, val.Val...)
+    }else {
+      result = append(result, byte(op.Num()))
+    }
+  }
+  return result
 }
 
 func parseScriptFromBytes(buf []byte) ([]Operation, error) {
@@ -87,19 +107,18 @@ func ParseScript(from io.Reader) (*Script, error) {
 	}
 	cmds, err := parseScriptFromBytes(buf)
 	return &Script{
-		buf,
 		cmds,
 	}, err
 }
 
 func (t *Script) Serialize() []byte {
-	val := t.input
-	val = append(EncodeVarInt(uint64(len(val))), val...)
-	return val
+  val := serializeScriptToBytes(t.cmds)
+  length := EncodeVarInt(uint64(len(val)))
+  return append(length, val...)
 }
 
 func (t *ScriptPubKey) Serialize() []byte {
-	val := t.input
-	val = append(EncodeVarInt(uint64(len(val))), val...)
-	return val
+	val := serializeScriptToBytes(t.cmds)
+  length := EncodeVarInt(uint64(len(val)))
+	return append(length, val...)
 }
