@@ -15,6 +15,44 @@ type ScriptPubKey struct {
   cmds []Operation
 }
 
+type CombinedScript struct {
+  cmds []Operation
+}
+
+func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
+  cmds := make([]Operation, 0)
+  i := len(t.cmds)-1
+  for ;i >= 0;i-- {
+    Push(&cmds, t.cmds[i])
+  }
+  i = len(key.cmds)-1
+  for ;i>=0;i-- {
+    Push(&cmds, key.cmds[i])
+  }
+  return &CombinedScript{
+    cmds,
+  }
+}
+
+func (t *CombinedScript) Evaluate(z string) bool {
+  cmds := make([]Operation, len(t.cmds))
+  copy(cmds, t.cmds)
+  stack := make([]Operation, 0)
+  altstack := make([]Operation, 0)
+  fmt.Printf("%s\n", cmds)
+  for len(cmds) > 0 {
+    cmd := Pop(&cmds)
+    if !cmd.Operate(z, &stack, &altstack, &cmds){
+      return false
+    }
+  }
+  if len(stack) == 0 {
+    return false
+  }
+  op := Pop(&stack)
+  return op.Num() != 0 
+}
+
 func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
 	length := ReadVarInt(from)
 	buf := make([]byte, length)
@@ -37,6 +75,7 @@ func serializeScriptToBytes(cmds []Operation) []byte {
   for _, op := range cmds {
     if val, ok := op.(*ScriptVal); ok {
       //If its a ScriptVal then its a value
+      //That should be treated as such (length + val) or (OP_PUSHDATAx + length + VAL)
       length := len(val.Val)
       if length < 75 {
         result = append(result, byte(length))

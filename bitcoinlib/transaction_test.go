@@ -69,3 +69,21 @@ func TestTransactionSerialization(t *testing.T) {
 		t.Fatalf("Decoded was not the same as the original transaction:\n%s\n%s", decoded, expected)
 	}
 }
+
+func TestScriptEvaluation(t *testing.T) {
+  pubkey, _ := hex.DecodeString("06767695935687")
+  scriptSig, _ := hex.DecodeString("0152")
+  pub, err := bitcoinlib.ParsePubKey(bytes.NewReader(pubkey))
+  if err != nil {
+    t.Fatalf("Failed processing pub key")
+  }
+  sig, err := bitcoinlib.ParseScript(bytes.NewReader(scriptSig))
+  if err != nil {
+    t.Fatalf("Failed processing scrip sig")
+  }
+  combined := pub.Combine(*sig)
+  if !combined.Evaluate("") {
+    t.Fatalf("Failed evaluating script")
+  }
+
+}

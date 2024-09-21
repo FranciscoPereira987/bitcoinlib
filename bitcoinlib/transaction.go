@@ -292,3 +292,7 @@ func (tx *Transaction) Fee(testnet bool) uint64 {
 	}
 	return totalOutput - totalInput
 }
+
+func (tx *Transaction) Verify() bool {
+  return false
+}
