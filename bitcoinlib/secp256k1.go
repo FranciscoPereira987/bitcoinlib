@@ -54,7 +54,7 @@ func FromLittleEndian(value []byte) Int {
   for i := 0; i < len(value) - 8; i += 8 {
     right := len(value) - i
     left := len(value) - i - 8
-    result[i] = binary.LittleEndian.Uint64(value[left:right])
+    result[i/8] = binary.LittleEndian.Uint64(value[left:right])
   }
   int_bytes := make([]byte, 0)
   for len(result) > 0 {

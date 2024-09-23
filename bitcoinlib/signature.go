@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -83,7 +84,7 @@ func compressedSec(p *FinitePoint) []byte {
 
 func ParseFromSec(stream []byte) (Point, error) {
 	if len(stream) < 33 {
-		return nil, errors.New("Stream too short")
+		return nil, errors.New("stream too short")
 	}
 	first_byte := SecStart(stream[0])
 
@@ -95,21 +96,21 @@ func ParseFromSec(stream []byte) (Point, error) {
 
 func parseCompressed(stream []byte) (Point, error) {
 	if len(stream) != 33 {
-		return nil, errors.New("Invalid stream length for compressed sec format")
+		return nil, errors.New("invalid stream length for compressed sec format")
 	}
 	even := SecStart(stream[0]) == EVEN_Y
-	x := FromHexString(hex.EncodeToString(stream[1:]))
+	x := FromHexString("0x"+hex.EncodeToString(stream[1:]))
 	return solveY(x, even), nil
 }
 
 func parseUncompressed(stream []byte) (Point, error) {
 	if len(stream) != 65 {
-		return nil, errors.New("Invalid stream length for uncompressed sec format")
+		return nil, errors.New("invalid stream length for uncompressed sec format")
 	}
 	x_stream := stream[1:33]
 	y_stream := stream[33:]
-	x := FromHexString(hex.EncodeToString(x_stream))
-	y := FromHexString(hex.EncodeToString(y_stream))
+	x := FromHexString("0x"+hex.EncodeToString(x_stream))
+	y := FromHexString("0x"+hex.EncodeToString(y_stream))
 	return NewS256Point(x, y)
 }
 
@@ -130,17 +131,17 @@ func (sg *Signature) Der() []byte {
 }
 
 func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
-  if sign[0] != 0x03 {
-    return nil, errors.New("Invalid der signature")
+  if sign[0] != 0x30 {
+    return nil, errors.New("invalid der signature")
   }
   sign = sign[1:]
   if len(sign[1:]) != int(sign[0]) {
-    return nil, errors.New("Invalid der signature length")
+    return nil, fmt.Errorf("invalid der signature length: %d vs %d", sign[0], len(sign[1:]))
   }
   sign = sign[1:]
   marker := sign[0]
   if marker != 0x02 {
-    return nil, errors.New("Invalid marker")
+    return nil, errors.New("invalid marker")
   }
   rLength := sign[1]
   sign = sign[2:]
@@ -148,7 +149,7 @@ func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
   sign = sign[rLength:]
   marker = sign[0]
   if marker != 0x02 {
-    return nil, errors.New("Invalid marker")
+    return nil, errors.New("invalid marker")
   }
   sLength := sign[1]
   sign = sign[2:]

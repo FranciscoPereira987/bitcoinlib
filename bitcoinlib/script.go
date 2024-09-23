@@ -5,52 +5,61 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 )
 
 type Script struct {
-	cmds  []Operation
+	cmds []Operation
 }
 
 type ScriptPubKey struct {
-  cmds []Operation
+	cmds []Operation
 }
 
 type CombinedScript struct {
-  cmds []Operation
+	cmds []Operation
+}
+
+func NewScript(cmds []Operation) *Script {
+	return &Script{
+		cmds,
+	}
+}
+
+func NewPubkey(cmds []Operation) *ScriptPubKey {
+	return &ScriptPubKey{
+		cmds,
+	}
 }
 
 func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
-  cmds := make([]Operation, 0)
-  i := len(t.cmds)-1
-  for ;i >= 0;i-- {
-    Push(&cmds, t.cmds[i])
-  }
-  i = len(key.cmds)-1
-  for ;i>=0;i-- {
-    Push(&cmds, key.cmds[i])
-  }
-  return &CombinedScript{
-    cmds,
-  }
+	cmds := make([]Operation, len(t.cmds))
+	copy(cmds, t.cmds)
+	slices.Reverse(cmds)
+	cmds = append(cmds, key.cmds...)
+	slices.Reverse(cmds[len(t.cmds):])
+	return &CombinedScript{
+		cmds,
+	}
 }
 
 func (t *CombinedScript) Evaluate(z string) bool {
-  cmds := make([]Operation, len(t.cmds))
-  copy(cmds, t.cmds)
-  stack := make([]Operation, 0)
-  altstack := make([]Operation, 0)
-  fmt.Printf("%s\n", cmds)
-  for len(cmds) > 0 {
-    cmd := Pop(&cmds)
-    if !cmd.Operate(z, &stack, &altstack, &cmds){
-      return false
-    }
-  }
-  if len(stack) == 0 {
-    return false
-  }
-  op := Pop(&stack)
-  return op.Num() != 0 
+	cmds := make([]Operation, len(t.cmds))
+	copy(cmds, t.cmds)
+	stack := make([]Operation, 0)
+	altstack := make([]Operation, 0)
+	
+	for len(cmds) > 0 {
+		cmd := Pop(&cmds)
+		if !cmd.Operate(z, &stack, &altstack, &cmds) {
+			return false
+		}
+	}
+	if len(stack) == 0 {
+		return false
+	}
+	op := Pop(&stack)
+	return op.Num() != 0
 }
 
 func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
@@ -59,8 +68,8 @@ func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
 	total, err := from.Read(buf)
 	if total < int(length) {
 		err = errors.Join(err, errors.New("invalid Script length decoded for pub key"))
-    return nil, err
-  }
+		return nil, err
+	}
 	cmds, err := parseScriptFromBytes(buf)
 	if err != nil {
 		return nil, err
@@ -71,26 +80,26 @@ func ParsePubKey(from io.Reader) (*ScriptPubKey, error) {
 }
 
 func serializeScriptToBytes(cmds []Operation) []byte {
-  result := make([]byte, 0)
-  for _, op := range cmds {
-    if val, ok := op.(*ScriptVal); ok {
-      //If its a ScriptVal then its a value
-      //That should be treated as such (length + val) or (OP_PUSHDATAx + length + VAL)
-      length := len(val.Val)
-      if length < 75 {
-        result = append(result, byte(length))
-      }else if length < 256 {
-        result = append(result, 76, byte(length))
-      }else if length < 520 {
-        result = append(result, 77)
-        result = binary.LittleEndian.AppendUint16(result, uint16(length))
-      }
-      result = append(result, val.Val...)
-    }else {
-      result = append(result, byte(op.Num()))
-    }
-  }
-  return result
+	result := make([]byte, 0)
+	for _, op := range cmds {
+		if val, ok := op.(*ScriptVal); ok {
+			//If its a ScriptVal then its a value
+			//That should be treated as such (length + val) or (OP_PUSHDATAx + length + VAL)
+			length := len(val.Val)
+			if length < 75 {
+				result = append(result, byte(length))
+			} else if length < 256 {
+				result = append(result, 76, byte(length))
+			} else if length < 520 {
+				result = append(result, 77)
+				result = binary.LittleEndian.AppendUint16(result, uint16(length))
+			}
+			result = append(result, val.Val...)
+		} else {
+			result = append(result, byte(op.Num()))
+		}
+	}
+	return result
 }
 
 func parseScriptFromBytes(buf []byte) ([]Operation, error) {
@@ -151,13 +160,13 @@ func ParseScript(from io.Reader) (*Script, error) {
 }
 
 func (t *Script) Serialize() []byte {
-  val := serializeScriptToBytes(t.cmds)
-  length := EncodeVarInt(uint64(len(val)))
-  return append(length, val...)
+	val := serializeScriptToBytes(t.cmds)
+	length := EncodeVarInt(uint64(len(val)))
+	return append(length, val...)
 }
 
 func (t *ScriptPubKey) Serialize() []byte {
 	val := serializeScriptToBytes(t.cmds)
-  length := EncodeVarInt(uint64(len(val)))
+	length := EncodeVarInt(uint64(len(val)))
 	return append(length, val...)
 }
