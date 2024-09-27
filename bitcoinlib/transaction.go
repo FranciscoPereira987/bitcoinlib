@@ -82,6 +82,7 @@ func FetchTransaction(tx_id string, testnet bool, fresh bool) (*Transaction, err
 			return nil, err
 		}
 		buf = bytes.TrimSpace(buf)
+		buf, _ = hex.DecodeString(string(buf))
 		tx, err := ParseTransaction(bytes.NewReader(buf))
 		if err != nil {
 			return nil, err
@@ -112,7 +113,7 @@ func parseUint32(from io.Reader) (uint32, error) {
 	buf := make([]byte, 4)
 	total, err := from.Read(buf)
 	if total < 4 {
-		err = errors.Join(err, errors.New("Could not parse uint32 from stream"))
+		err = errors.Join(err, errors.New("could not parse uint32 from stream"))
 	}
 	return binary.LittleEndian.Uint32(buf), err
 }
@@ -121,7 +122,7 @@ func parseUint64(from io.Reader) (uint64, error) {
 	buf := make([]byte, 8)
 	total, err := from.Read(buf)
 	if total < 8 {
-		err = errors.Join(err, errors.New("Could not parse uint64 from stream"))
+		err = errors.Join(err, errors.New("could not parse uint64 from stream"))
 	}
 	return binary.LittleEndian.Uint64(buf), err
 }
@@ -277,22 +278,85 @@ func (t *Input) ScriptPubkey(testnet bool) (*ScriptPubKey, error) {
 }
 
 // Returns the implied fee of a Transaction
-func (tx *Transaction) Fee(testnet bool) uint64 {
+func (tx *Transaction) Fee(testnet bool) int64 {
 	var totalOutput uint64
 	var totalInput uint64
 	for _, val := range tx.inputs {
 		valTotal, err := val.Value(testnet)
 		if err != nil {
-			break
+			return -1
 		}
 		totalInput += valTotal
 	}
 	for _, val := range tx.outputs {
 		totalOutput += val.amount
 	}
-	return totalOutput - totalInput
+	fmt.Printf("outputs: %d\ninputs: %d\n=====\n", totalOutput, totalInput)
+	//Doing it this way to avoid overflow issues
+	if totalInput < totalOutput {
+		return -int64(totalOutput - totalInput)
+	}
+	return int64(totalInput - totalOutput)
 }
 
-func (tx *Transaction) Verify() bool {
-  return false
+// Returns the input serialization with
+// the pubkey of the previous transaction
+// instead of the script sig
+// If empty is true, does not replace the ScripSig with the
+// previous ScriptPubKey
+func (in *Input) ReplaceScriptSig(empty bool, testnet bool) []byte {
+	buf, _ := hex.DecodeString(in.previousID)
+	slices.Reverse(buf)
+	buf = binary.LittleEndian.AppendUint32(buf, in.previousIndex)
+	if empty {
+		buf = append(buf, 0x00)
+	} else {
+		pubKey, _ := FetchTransaction(in.previousID, testnet, true)
+		scriptPubKey := pubKey.outputs[in.previousIndex].scriptPubKey
+		buf = append(buf, scriptPubKey.Serialize()...)
+	}
+	buf = binary.LittleEndian.AppendUint32(buf, in.sequence)
+	return buf
+}
+
+func (tx *Transaction) SigHash(input int, testnet bool) []byte {
+	buf := tx.version.Serialize()
+	buf = append(buf, EncodeVarInt(uint64(len(tx.inputs)))...)
+	for index, val := range tx.inputs {
+		buf = append(buf, val.ReplaceScriptSig(index != input, testnet)...)
+	}
+	buf = append(buf, EncodeVarInt(uint64(len(tx.outputs)))...)
+	for _, val := range tx.outputs {
+		buf = append(buf, val.Serialize()...)
+	}
+	buf = binary.LittleEndian.AppendUint32(buf, tx.locktime)
+	buf = append(buf, 0x01, 0x00, 0x00, 0x00) //Append SIGHASH_ALL
+	return Hash256(buf)
+}
+
+func (tx *Transaction) VerifyInput(input int, testnet bool) bool {
+	//First of, get Z
+	hash := tx.SigHash(input, testnet)
+	//Get the public key that goes with this input script
+	pubKey, err := tx.inputs[input].ScriptPubkey(testnet)
+	if err != nil {
+		return false
+	}
+	//Combine and evaluate the final Script
+	combined := pubKey.Combine(*tx.inputs[input].scriptSig)
+	return combined.Evaluate(hex.EncodeToString(hash))
+}
+
+func (tx *Transaction) Verify(testnet bool) bool {
+	//Validating the fee
+	if tx.Fee(testnet) < 0 {
+		return false
+	}
+	//Need to validate the script of each input
+	for i := range tx.inputs {
+		if !tx.VerifyInput(i, testnet) {
+			return false
+		}
+	}
+	return true
 }
