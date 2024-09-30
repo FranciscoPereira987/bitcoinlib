@@ -49,6 +49,19 @@ func NewPrivateKey(e Int) *PrivateKey {
 	}
 }
 
+//Returns the hex string of a Base58 encoded address
+func FromBase58Address(str string) string{
+	decoded,_ := hex.DecodeString(FromBase58(str))
+	checksum := hex.EncodeToString(decoded[len(decoded)-4:])
+	address := decoded[7:len(decoded)-4]
+	hashed := hex.EncodeToString(Hash256(address)[:4])
+	if hashed != checksum {
+		fmt.Printf("Invalid checksum: %s\nExpected: %s", checksum, hashed)
+		return ""
+	}
+	return hex.EncodeToString(address[1:])
+}
+
 func Address(point Point, secType SecStart, testnet bool) string {
 	secVal := sec(point, secType)
 	hashed := Hash160(secVal)

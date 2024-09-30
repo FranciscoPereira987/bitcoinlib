@@ -16,6 +16,18 @@ type ScriptPubKey struct {
 	cmds []Operation
 }
 
+func P2PKHScript(hash []byte) *ScriptPubKey {
+	return &ScriptPubKey{
+		[]Operation{
+			&OP_DUP{},
+			&OP_HASH160{},
+			&ScriptVal{hash},
+			&OP_EQUALVERIFY{},
+			&OP_CHECKSIG{},
+		},
+	}
+}
+
 type CombinedScript struct {
 	cmds []Operation
 }

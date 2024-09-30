@@ -291,7 +291,7 @@ func (tx *Transaction) Fee(testnet bool) int64 {
 	for _, val := range tx.outputs {
 		totalOutput += val.amount
 	}
-	fmt.Printf("outputs: %d\ninputs: %d\n=====\n", totalOutput, totalInput)
+	//fmt.Printf("outputs: %d\ninputs: %d\n=====\n", totalOutput, totalInput)
 	//Doing it this way to avoid overflow issues
 	if totalInput < totalOutput {
 		return -int64(totalOutput - totalInput)

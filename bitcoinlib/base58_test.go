@@ -12,6 +12,7 @@ func TestConversionFromHexValues(t *testing.T) {
     "0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c",
 	}
 	expectedResults := []string{
+		
 		"9MA8fRQrT4u8Zj8ZRd6MAiiyaxb2Y1CMpvVkHQu5hVM6",
 		"EQJsjkd6JaGwxrjEhfeqPenqHwrBmPQZjJGNSCHBkcF7",
     	"4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd",
@@ -19,6 +20,42 @@ func TestConversionFromHexValues(t *testing.T) {
 
 	for index, value := range values {
     encoded := bitcoinlib.IntoBase58(value[2:])
+    expected := expectedResults[index]
+    if encoded != expected {
+      t.Fatalf("Failed at index %d\nExpected => %s\nActual => %s\n", index, expected, encoded)
+    }
+	}
+}
+
+func TestConversionIntoHexValues(t *testing.T) {
+	expectedResults := []string{
+		"000000000000006f507b27411ccf7f16f10297de6cef3f291623eddf192d9df2",
+	}
+	values := []string{
+		"mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf",
+	}
+
+	for index, value := range values {
+    encoded := bitcoinlib.FromBase58(value)
+    expected := expectedResults[index]
+    if encoded != expected {
+      t.Fatalf("Failed at index %d\nExpected => %s\nActual => %s\n", index, expected, encoded)
+    }
+	}
+}
+
+
+
+func TestIntoHexValuesAdress(t *testing.T) {
+	expectedResults := []string{
+		"507b27411ccf7f16f10297de6cef3f291623eddf",
+	}
+	values := []string{
+		"mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf",
+	}
+
+	for index, value := range values {
+    encoded := bitcoinlib.FromBase58Address(value)
     expected := expectedResults[index]
     if encoded != expected {
       t.Fatalf("Failed at index %d\nExpected => %s\nActual => %s\n", index, expected, encoded)

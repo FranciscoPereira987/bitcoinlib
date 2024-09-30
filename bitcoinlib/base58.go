@@ -30,3 +30,14 @@ func IntoBase58(num string) string {
 
   return prefix + result 
 }
+
+func FromBase58(s string) string {
+  num := FromInt(0)
+  for _, r := range s {
+    num = num.Mul(F8)
+    index := strings.IndexRune(ALPHABET, r)
+    num = num.Add(FromInt(index))
+  }
+  combined := num.IntoBytes()
+  return hex.EncodeToString(combined[:])
+}
