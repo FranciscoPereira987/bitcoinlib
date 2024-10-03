@@ -28,6 +28,15 @@ func P2PKHScript(hash []byte) *ScriptPubKey {
 	}
 }
 
+func P2PKHSignature(der []byte, sec []byte) *Script {
+	return &Script{
+		[]Operation{
+			&ScriptVal{der},
+			&ScriptVal{sec},
+		},
+	}
+}
+
 type CombinedScript struct {
 	cmds []Operation
 }
@@ -60,7 +69,6 @@ func (t *CombinedScript) Evaluate(z string) bool {
 	copy(cmds, t.cmds)
 	stack := make([]Operation, 0)
 	altstack := make([]Operation, 0)
-	
 	for len(cmds) > 0 {
 		cmd := Pop(&cmds)
 		if !cmd.Operate(z, &stack, &altstack, &cmds) {

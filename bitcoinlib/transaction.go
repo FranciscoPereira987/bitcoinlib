@@ -197,6 +197,14 @@ func ParseTransaction(from io.Reader) (*Transaction, error) {
 		return nil, err
 	}
 	inputs := ReadVarInt(from)
+	segwit := inputs == 0
+	if segwit {
+		next := ReadVarInt(from)
+		if next != 1 {
+			return nil, errors.New("invalid segwit transaction")
+		}
+		inputs = ReadVarInt(from)
+	}
 	inputArr := make([]*Input, 0)
 	for range inputs {
 		input, err := NewInputFrom(from)
@@ -213,6 +221,18 @@ func ParseTransaction(from io.Reader) (*Transaction, error) {
 			return nil, err
 		}
 		outputArr = append(outputArr, output)
+	}
+	if segwit {
+		for _ = range inputArr {
+			value := []byte{0}
+			from.Read(value)
+			items := int(value[0])
+			for _ = range items {
+				length := ReadVarInt(from)
+				item := make([]byte, length)
+				from.Read(item)
+			}
+		}
 	}
 	locktime, err := parseUint32(from)
 	return &Transaction{
@@ -359,4 +379,40 @@ func (tx *Transaction) Verify(testnet bool) bool {
 		}
 	}
 	return true
+}
+
+func NewTransaction() *Transaction {
+	return &Transaction{
+		*NewVersion(1),
+		[]*Input{},
+		[]*Output{},
+		0,
+	}
+}
+
+func (tx *Transaction) AddInput(previousID string, previousIndex uint32) {
+	newInput := &Input{
+		previousID,
+		previousIndex,
+		&Script{},
+		0xffffffff,
+	}
+	tx.inputs = append(tx.inputs, newInput)
+}
+
+func (tx *Transaction) SignInput(input int, testnet bool, key *PrivateKey) {
+	z := tx.SigHash(input, testnet)
+	zInt := FromHexString("0x" + hex.EncodeToString(z))
+	sig := key.Sign(zInt)
+	script := P2PKHSignature(append(sig.Der(), 0x01, 0x00, 0x00, 0x00), key.Sec(COMPRESSED))
+	tx.inputs[input].scriptSig = script
+}
+
+func (tx *Transaction) AddOutput(amount uint64, address string) {
+	pubKey := P2PKHScript([]byte(address))
+	newOutput := &Output{
+		amount,
+		pubKey,
+	}
+	tx.outputs = append(tx.outputs, newOutput)
 }
