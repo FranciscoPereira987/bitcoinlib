@@ -37,6 +37,12 @@ func P2PKHSignature(der []byte, sec []byte) *Script {
 	}
 }
 
+func NewScriptVal(val []byte) *ScriptVal {
+	return &ScriptVal{
+		val,
+	}
+}
+
 type CombinedScript struct {
 	cmds []Operation
 }

@@ -34,6 +34,7 @@ func main() {
 	//If I tried to broadcast it using the hex method, it wouldnt work
 	//But with the rawTx it would even though they are equal
 	fmt.Println(rawTx.String() == hex.EncodeToString(tx.Serialize())) 
+	fmt.Println(hex.EncodeToString(tx.Serialize()))
 	//Verify it
 	fmt.Println(tx.Verify(true))
 	//Print its serialization

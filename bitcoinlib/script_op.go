@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"slices"
 )
 
@@ -1512,7 +1513,65 @@ func (t *OP_CHECKSIGVERIFY) Num() int {
 type OP_CHECKMULTISIG struct{}
 
 func (t *OP_CHECKMULTISIG) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	return false
+	if Len(stack) < 1 {
+		return false
+	}
+	n := intoValue(Pop(stack))
+	if Len(stack) < n + 1{
+		return false
+	}
+	pubkeys := []Point{}
+	for range n {
+		pubkey, ok := Pop(stack).(*ScriptVal)
+		if !ok {
+			return false
+		}
+		point, err := ParseFromSec(pubkey.Val)
+		if err != nil {
+			fmt.Printf("Failed to parse Sec value with error: %s", err)
+			return false
+		}
+		pubkeys = append(pubkeys, point)
+	}
+	m := intoValue(Pop(stack))
+	if Len(stack) < m + 1 {
+		return false
+	}
+	signatures := []*ScriptVal{}
+	for range m {
+		signature, ok := Pop(stack).(*ScriptVal)
+		if !ok {
+			return false
+		}
+		signatures = append(signatures, signature)
+	}
+	//Popping out the OP_0 value
+	Pop(stack)
+	//Now I need to verify the signarutes agains the pubkeys
+	if multisigcheck(z, signatures, pubkeys) {
+		Push(stack, &OP_1{})
+	}else {
+		Push(stack, &OP_0{})
+	}
+	return true
+}
+
+func multisigcheck(z string, signatures []*ScriptVal, pubkeys []Point) bool {
+	
+	actualSig := 0
+	actualPubKey := 0
+	for actualSig < len(signatures) && actualPubKey < len(pubkeys) {
+		der, err := ParseFromDer(pubkeys[actualPubKey], signatures[actualSig].Val)
+		if err != nil {
+			fmt.Printf("Failed to parse der signature at index %d with error: %s", actualSig, err)
+			return false
+		} 
+		if der.Verify(FromHexString("0x"+z)) {
+			actualSig++
+		}
+		actualPubKey++
+	}
+	return actualSig == len(signatures)
 }
 
 func (t *OP_CHECKMULTISIG) Num() int {
