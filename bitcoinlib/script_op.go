@@ -3,6 +3,7 @@ package bitcoinlib
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/hex"
 	"slices"
 )
 
@@ -182,8 +183,7 @@ func decodeNum(element []byte) Int {
 	result := make([]byte, len(element))
 	copy(result, element)
 	slices.Reverse(result)
-	value := FromInt(0)
-	value.value.FillBytes(result)
+	value := FromHexString("0x"+hex.EncodeToString(result))
 	if negative {
 		value.Mul(FromInt(-1))
 	}
@@ -870,9 +870,19 @@ func (t *OP_EQUAL) Num() int {
 type OP_EQUALVERIFY struct{}
 
 func (t *OP_EQUALVERIFY) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	eq := &OP_EQUAL{}
-	verify := &OP_VERIFY{}
-	return eq.Operate(z, stack, altstack, cmds) && verify.Operate(z, stack, altstack, cmds)
+	if Len(stack) < 2 {
+		return false
+	}
+	first := Pop(stack)
+	second := Pop(stack)
+	valFirst, ok1 := first.(*ScriptVal)
+	valSecond, ok2 := second.(*ScriptVal)
+	trueVal := first.Num() == second.Num()
+	if ok1 && ok2 {
+		trueVal = decodeNum(valFirst.Val).Eq(decodeNum(valSecond.Val))
+	
+	}
+	return trueVal
 }
 
 func (t *OP_EQUALVERIFY) Num() int {

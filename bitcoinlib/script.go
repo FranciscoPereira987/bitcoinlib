@@ -71,6 +71,7 @@ func (t *CombinedScript) Evaluate(z string) bool {
 	altstack := make([]Operation, 0)
 	for len(cmds) > 0 {
 		cmd := Pop(&cmds)
+		
 		if !cmd.Operate(z, &stack, &altstack, &cmds) {
 			return false
 		}

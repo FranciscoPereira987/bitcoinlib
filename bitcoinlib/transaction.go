@@ -402,17 +402,24 @@ func (tx *Transaction) AddInput(previousID string, previousIndex uint32) {
 
 func (tx *Transaction) SignInput(input int, testnet bool, key *PrivateKey) {
 	z := tx.SigHash(input, testnet)
-	zInt := FromHexString("0x" + hex.EncodeToString(z))
+	zInt := FromHexString("0x"+hex.EncodeToString(z))
 	sig := key.Sign(zInt)
-	script := P2PKHSignature(append(sig.Der(), 0x01, 0x00, 0x00, 0x00), key.Sec(COMPRESSED))
+	script := P2PKHSignature(append(sig.Der(),0x01), key.Sec(COMPRESSED))
 	tx.inputs[input].scriptSig = script
 }
 
 func (tx *Transaction) AddOutput(amount uint64, address string) {
-	pubKey := P2PKHScript([]byte(address))
+	hash := FromBase58Address(address)
+	encoded, _ := hex.DecodeString(hash)
 	newOutput := &Output{
 		amount,
-		pubKey,
+		P2PKHScript(encoded),
 	}
 	tx.outputs = append(tx.outputs, newOutput)
+}
+
+func (tx *Transaction) Sign(testnet bool, key *PrivateKey) {
+	for input := range tx.inputs {
+		tx.SignInput(input, testnet, key)
+	}
 }
