@@ -44,7 +44,8 @@ func NewScriptVal(val []byte) *ScriptVal {
 }
 
 type CombinedScript struct {
-	cmds []Operation
+	cmds   []Operation
+	isP2SH bool
 }
 
 func NewScript(cmds []Operation) *Script {
@@ -59,6 +60,31 @@ func NewPubkey(cmds []Operation) *ScriptPubKey {
 	}
 }
 
+func P2SHPubKey(hash []byte) *ScriptPubKey {
+
+	return &ScriptPubKey{
+		[]Operation{
+			&OP_HASH160{},
+			&ScriptVal{hash},
+			&OP_EQUAL{},
+		},
+	}
+}
+
+func (s *ScriptPubKey) isP2SH() bool {
+	fmt.Printf("Salgo por aca: %s\n", s.cmds)
+	commands := P2SHPubKey([]byte{}).cmds
+	if len(commands) != len(s.cmds) {
+		return false
+	}
+	for index, cmd := range commands {
+		if cmd.Num() != s.cmds[index].Num() {
+			return false
+		}
+	}
+	return true
+}
+
 func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)
@@ -67,17 +93,46 @@ func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
 	slices.Reverse(cmds[len(t.cmds):])
 	return &CombinedScript{
 		cmds,
+		t.isP2SH(),
 	}
 }
 
+// Evaluates the hash of the script provided
+func (t *CombinedScript) EvaluateScriptHash() bool {
+	//Don't need z, so just use a placeholder
+	z := ""
+	helperScript := &CombinedScript{
+		t.cmds[:4],
+		false,
+	}
+	return helperScript.Evaluate(z)
+}
+
+// Evaluates a Redeem Script (need to parse it and then create the correct script to evaluate)
+func (t *CombinedScript) EvaluateRedeemScript(z string) bool {
+	script := t.cmds[len(t.cmds)-4].(*ScriptVal)
+	pubKeyScript, err := parseScriptFromBytes(script.Val)
+	if err != nil {
+		return false
+	}
+	pubKey := NewPubkey(pubKeyScript)
+	privKey := NewScript(t.cmds[4:])
+	slices.Reverse(privKey.cmds)
+	return pubKey.Combine(*privKey).Evaluate(z)
+}
+
 func (t *CombinedScript) Evaluate(z string) bool {
+	if t.isP2SH {
+		//Evaluate P2SH
+		fmt.Println("Por aca pase")
+		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z)
+	}
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)
 	stack := make([]Operation, 0)
 	altstack := make([]Operation, 0)
 	for len(cmds) > 0 {
 		cmd := Pop(&cmds)
-		
 		if !cmd.Operate(z, &stack, &altstack, &cmds) {
 			return false
 		}

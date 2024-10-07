@@ -10,7 +10,7 @@ type Point interface {
 	Ne(other Point) bool
 	Add(other Point) (Point, error)
 	Scale(by int) Point
-  ScaleInt(by Int) Point
+  	ScaleInt(by Int) Point
 	SameCurve(other Point) bool
 }
 

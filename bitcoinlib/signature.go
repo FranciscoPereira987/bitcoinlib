@@ -143,6 +143,15 @@ func (sg *Signature) Der() []byte {
 	return append([]byte{0x30, byte(len(der))}, der...)
 }
 
+func parseBigEndian(value []byte) Int {
+	result := FromInt(0)
+	if value[0] == 0 {
+		value = value[1:]
+	}
+	result.value = result.value.SetBytes(value)
+	return result
+}
+
 func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
   if sign[0] != 0x30 {
     return nil, errors.New("invalid der signature")
@@ -158,7 +167,7 @@ func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
   }
   rLength := sign[1]
   sign = sign[2:]
-  r := sign[:rLength]
+  r := parseBigEndian(sign[:rLength])
   sign = sign[rLength:]
   marker = sign[0]
   if marker != 0x02 {
@@ -166,10 +175,10 @@ func ParseFromDer(pubkey Point, sign []byte) (*Signature, error){
   }
   sLength := sign[1]
   sign = sign[2:]
-  s := sign[:sLength]
+  s := parseBigEndian(sign[:sLength]).ExpNeg(ORDER)
   return &Signature{
-    s: FromLittleEndian(s),
-    r: FromLittleEndian(r),
+    s: s,
+    r: r,
     p: pubkey,
   }, nil
 
@@ -225,8 +234,8 @@ func GetR(k Int) Int {
 }
 
 func (s *Signature) Verify(z Int) bool {
-	u := z.Mul(s.s).Mod(ORDER)
-	v := s.r.Mul(s.s).Mod(ORDER)
+	u := z.Mul(s.s)
+	v := s.r.Mul(s.s)
 	total, _ := G().ScaleInt(u).Add(s.p.ScaleInt(v))
 	result, ok := total.(*FinitePoint)
 	return ok && result.x.value.Eq(s.r)

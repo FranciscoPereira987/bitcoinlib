@@ -205,7 +205,8 @@ func (t *OP_0) Num() int {
 type OP_1Negate struct{}
 
 func (t *OP_1Negate) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(-1))})
 	return true
 }
 
@@ -216,7 +217,7 @@ func (t *OP_1Negate) Num() int {
 type OP_1 struct{}
 
 func (t *OP_1) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(1))})
 	return true
 }
 
@@ -227,7 +228,7 @@ func (t *OP_1) Num() int {
 type OP_2 struct{}
 
 func (t *OP_2) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(2))})
 	return true
 }
 
@@ -238,7 +239,7 @@ func (t *OP_2) Num() int {
 type OP_3 struct{}
 
 func (t *OP_3) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(3))})
 	return true
 }
 
@@ -249,7 +250,7 @@ func (t *OP_3) Num() int {
 type OP_4 struct{}
 
 func (t *OP_4) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(4))})
 	return true
 }
 
@@ -260,7 +261,7 @@ func (t *OP_4) Num() int {
 type OP_5 struct{}
 
 func (t *OP_5) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(5))})
 	return true
 }
 
@@ -271,7 +272,7 @@ func (t *OP_5) Num() int {
 type OP_6 struct{}
 
 func (t *OP_6) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(6))})
 	return true
 }
 
@@ -282,7 +283,7 @@ func (t *OP_6) Num() int {
 type OP_7 struct{}
 
 func (t *OP_7) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(7))})
 	return true
 }
 
@@ -293,7 +294,7 @@ func (t *OP_7) Num() int {
 type OP_8 struct{}
 
 func (t *OP_8) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(8))})
 	return true
 }
 
@@ -304,7 +305,7 @@ func (t *OP_8) Num() int {
 type OP_9 struct{}
 
 func (t *OP_9) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(9))})
 	return true
 }
 
@@ -315,7 +316,7 @@ func (t *OP_9) Num() int {
 type OP_10 struct{}
 
 func (t *OP_10) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(10))})
 	return true
 }
 
@@ -326,7 +327,7 @@ func (t *OP_10) Num() int {
 type OP_11 struct{}
 
 func (t *OP_11) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(11))})
 	return true
 }
 
@@ -337,7 +338,7 @@ func (t *OP_11) Num() int {
 type OP_12 struct{}
 
 func (t *OP_12) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(12))})
 	return true
 }
 
@@ -348,7 +349,7 @@ func (t *OP_12) Num() int {
 type OP_13 struct{}
 
 func (t *OP_13) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(13))})
 	return true
 }
 
@@ -359,7 +360,7 @@ func (t *OP_13) Num() int {
 type OP_14 struct{}
 
 func (t *OP_14) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(14))})
 	return true
 }
 
@@ -370,7 +371,7 @@ func (t *OP_14) Num() int {
 type OP_15 struct{}
 
 func (t *OP_15) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(15))})
 	return true
 }
 
@@ -381,7 +382,7 @@ func (t *OP_15) Num() int {
 type OP_16 struct{}
 
 func (t *OP_16) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
-	*stack = append(*stack, t)
+	*stack = append(*stack, &ScriptVal{encodeNum(FromInt(16))})
 	return true
 }
 
@@ -1516,7 +1517,8 @@ func (t *OP_CHECKMULTISIG) Operate(z string, stack *Stack, altstack *Stack, cmds
 	if Len(stack) < 1 {
 		return false
 	}
-	n := intoValue(Pop(stack))
+	val := Pop(stack)
+	n := intoValue(val)
 	if Len(stack) < n + 1{
 		return false
 	}
@@ -1561,7 +1563,10 @@ func multisigcheck(z string, signatures []*ScriptVal, pubkeys []Point) bool {
 	actualSig := 0
 	actualPubKey := 0
 	for actualSig < len(signatures) && actualPubKey < len(pubkeys) {
-		der, err := ParseFromDer(pubkeys[actualPubKey], signatures[actualSig].Val)
+		sig := signatures[actualSig].Val
+		copied := make([]byte, len(sig))
+		copy(copied, sig)
+		der, err := ParseFromDer(pubkeys[actualPubKey], copied[:len(copied)-1])
 		if err != nil {
 			fmt.Printf("Failed to parse der signature at index %d with error: %s", actualSig, err)
 			return false

@@ -71,20 +71,20 @@ func TestTransactionSerialization(t *testing.T) {
 }
 
 func TestScriptEvaluation(t *testing.T) {
-  pubkey, _ := hex.DecodeString("06767695935687")
-  scriptSig, _ := hex.DecodeString("0152")
-  pub, err := bitcoinlib.ParsePubKey(bytes.NewReader(pubkey))
-  if err != nil {
-    t.Fatalf("Failed processing pub key")
-  }
-  sig, err := bitcoinlib.ParseScript(bytes.NewReader(scriptSig))
-  if err != nil {
-    t.Fatalf("Failed processing scrip sig")
-  }
-  combined := pub.Combine(*sig)
-  if !combined.Evaluate("") {
-    t.Fatalf("Failed evaluating script")
-  }
+	pubkey, _ := hex.DecodeString("06767695935687")
+	scriptSig, _ := hex.DecodeString("0152")
+	pub, err := bitcoinlib.ParsePubKey(bytes.NewReader(pubkey))
+	if err != nil {
+		t.Fatalf("Failed processing pub key")
+	}
+	sig, err := bitcoinlib.ParseScript(bytes.NewReader(scriptSig))
+	if err != nil {
+		t.Fatalf("Failed processing scrip sig")
+	}
+	combined := pub.Combine(*sig)
+	if !combined.Evaluate("") {
+		t.Fatalf("Failed evaluating script")
+	}
 
 }
 
@@ -102,7 +102,6 @@ func TestScriptEvaluationP2PK(t *testing.T) {
 	}
 	scriptSig := bitcoinlib.NewScript([]bitcoinlib.Operation{
 		&bitcoinlib.ScriptVal{sig},
-		
 	})
 	pubKey := bitcoinlib.NewPubkey([]bitcoinlib.Operation{
 		&bitcoinlib.ScriptVal{sec},
@@ -127,7 +126,7 @@ func TestTransactionInputsVsOutputs(t *testing.T) {
 func TestSigHash(t *testing.T) {
 	tx, _ := bitcoinlib.FetchTransaction("452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03", false, true)
 	want := "27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6"
-	if hex.EncodeToString(tx.SigHash(0, false)) !=  want {
+	if hex.EncodeToString(tx.SigHash(0, false, false)) != want {
 		t.Fatalf("Failed sighash")
 	}
 }
@@ -140,6 +139,7 @@ func TestVerifiyP2PKH(t *testing.T) {
 	if !tx.Verify(false) {
 		t.Fatal("Failed to verify Transaction")
 	}
+	
 	tx, err = bitcoinlib.FetchTransaction("5418099cc755cb9dd3ebc6cf1a7888ad53a1a3beb5a025bce89eb1bf7f1650a2", true, true)
 	if err != nil {
 		t.Fatal("Failed to fetch transaction 2")
@@ -150,25 +150,32 @@ func TestVerifiyP2PKH(t *testing.T) {
 }
 
 func TestOP_MULTISIG(t *testing.T) {
-        //"stack = [b'', sig1, sig2, b'\x02', sec1, sec2, b'\x02']"
-		z := "e71bfa115715d6fd33796948126f40a8cdd39f187e4afb03896795189fe1423c"
-		sig1, _ := hex.DecodeString("3045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701")
-        sig2, _ := hex.DecodeString("3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201")
-        sec1, _ := hex.DecodeString("022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70")
-        sec2, _ := hex.DecodeString("03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71")
-        pubkey := bitcoinlib.NewPubkey([]bitcoinlib.Operation{
-			&bitcoinlib.OP_CHECKMULTISIGVERIFY{},
-			&bitcoinlib.OP_2{},
-			bitcoinlib.NewScriptVal(sec1),
-			bitcoinlib.NewScriptVal(sec2),
-			&bitcoinlib.OP_2{},
-		})
-		scripSig := bitcoinlib.NewScript([]bitcoinlib.Operation{
-			bitcoinlib.NewScriptVal(sig1),
-			bitcoinlib.NewScriptVal(sig2),
-			&bitcoinlib.OP_0{},
-		})
-		if !pubkey.Combine(*scripSig).Evaluate(z) {
-			t.Fatal("Failed evaluation of OP_CHECKMULTISIG")
-		}
+	//"stack = [b'', sig1, sig2, b'\x02', sec1, sec2, b'\x02']"
+	z := "e71bfa115715d6fd33796948126f40a8cdd39f187e4afb03896795189fe1423c"
+	sig1, _ := hex.DecodeString("3045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701")
+	sig2, _ := hex.DecodeString("3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201")
+	sec1, _ := hex.DecodeString("022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70")
+	sec2, _ := hex.DecodeString("03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71")
+	pubkey := bitcoinlib.NewPubkey([]bitcoinlib.Operation{
+		&bitcoinlib.OP_CHECKMULTISIGVERIFY{},
+		&bitcoinlib.OP_2{},
+		bitcoinlib.NewScriptVal(sec1),
+		bitcoinlib.NewScriptVal(sec2),
+		&bitcoinlib.OP_2{},
+	})
+	scripSig := bitcoinlib.NewScript([]bitcoinlib.Operation{
+		bitcoinlib.NewScriptVal(sig1),
+		bitcoinlib.NewScriptVal(sig2),
+		&bitcoinlib.OP_0{},
+	})
+	if !pubkey.Combine(*scripSig).Evaluate(z) {
+		t.Fatal("Failed evaluation of OP_CHECKMULTISIG")
+	}
+}
+
+func TestP2SHTransaction(t *testing.T) {
+	tx, _ := bitcoinlib.FetchTransaction("46df1a9484d0a81d03ce0ee543ab6e1a23ed06175c104a178268fad381216c2b", false, false)
+	if !tx.Verify(false) {
+		t.Fatal("Failed to verify transaction")
+	}
 }

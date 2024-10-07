@@ -324,26 +324,32 @@ func (tx *Transaction) Fee(testnet bool) int64 {
 // instead of the script sig
 // If empty is true, does not replace the ScripSig with the
 // previous ScriptPubKey
-func (in *Input) ReplaceScriptSig(empty bool, testnet bool) []byte {
+func (in *Input) ReplaceScriptSig(empty bool, testnet bool, p2sh bool) []byte {
 	buf, _ := hex.DecodeString(in.previousID)
 	slices.Reverse(buf)
 	buf = binary.LittleEndian.AppendUint32(buf, in.previousIndex)
 	if empty {
 		buf = append(buf, 0x00)
 	} else {
-		pubKey, _ := FetchTransaction(in.previousID, testnet, true)
+		pubKey, _ := FetchTransaction(in.previousID, testnet, false)
 		scriptPubKey := pubKey.outputs[in.previousIndex].scriptPubKey
-		buf = append(buf, scriptPubKey.Serialize()...)
+		if p2sh {
+			cmds, _ := parseScriptFromBytes(in.scriptSig.cmds[len(in.scriptSig.cmds)-1].(*ScriptVal).Val)
+			script := NewPubkey(cmds)
+			buf = append(buf, script.Serialize()...)
+		}else {
+			buf = append(buf, scriptPubKey.Serialize()...)
+		}
 	}
 	buf = binary.LittleEndian.AppendUint32(buf, in.sequence)
 	return buf
 }
 
-func (tx *Transaction) SigHash(input int, testnet bool) []byte {
+func (tx *Transaction) SigHash(input int, testnet bool, p2sh bool) []byte {
 	buf := tx.version.Serialize()
 	buf = append(buf, EncodeVarInt(uint64(len(tx.inputs)))...)
 	for index, val := range tx.inputs {
-		buf = append(buf, val.ReplaceScriptSig(index != input, testnet)...)
+		buf = append(buf, val.ReplaceScriptSig(index != input, testnet, p2sh)...)
 	}
 	buf = append(buf, EncodeVarInt(uint64(len(tx.outputs)))...)
 	for _, val := range tx.outputs {
@@ -351,17 +357,19 @@ func (tx *Transaction) SigHash(input int, testnet bool) []byte {
 	}
 	buf = binary.LittleEndian.AppendUint32(buf, tx.locktime)
 	buf = append(buf, 0x01, 0x00, 0x00, 0x00) //Append SIGHASH_ALL
-	return Hash256(buf)
+	hashed := Hash256(buf)
+	return hashed
 }
 
 func (tx *Transaction) VerifyInput(input int, testnet bool) bool {
-	//First of, get Z
-	hash := tx.SigHash(input, testnet)
 	//Get the public key that goes with this input script
 	pubKey, err := tx.inputs[input].ScriptPubkey(testnet)
 	if err != nil {
 		return false
 	}
+	
+	//First of, get Z
+	hash := tx.SigHash(input, testnet, pubKey.isP2SH())
 	//Combine and evaluate the final Script
 	combined := pubKey.Combine(*tx.inputs[input].scriptSig)
 	return combined.Evaluate(hex.EncodeToString(hash))
@@ -401,10 +409,10 @@ func (tx *Transaction) AddInput(previousID string, previousIndex uint32) {
 }
 
 func (tx *Transaction) SignInput(input int, testnet bool, key *PrivateKey) {
-	z := tx.SigHash(input, testnet)
-	zInt := FromHexString("0x"+hex.EncodeToString(z))
+	z := tx.SigHash(input, testnet, false)
+	zInt := FromHexString("0x" + hex.EncodeToString(z))
 	sig := key.Sign(zInt)
-	script := P2PKHSignature(append(sig.Der(),0x01), key.Sec(COMPRESSED))
+	script := P2PKHSignature(append(sig.Der(), 0x01), key.Sec(COMPRESSED))
 	tx.inputs[input].scriptSig = script
 }
 

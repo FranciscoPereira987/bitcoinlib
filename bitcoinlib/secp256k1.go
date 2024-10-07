@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"math/big"
+	"slices"
 
 	"golang.org/x/crypto/ripemd160"
 )
@@ -46,24 +47,11 @@ func Hash256(from []byte) []byte {
 }
 
 func FromLittleEndian(value []byte) Int {
-  if len(value) % 8 != 0 {
-    padding := make([]byte, 8 - (len(value) %8))
-    value = append(value, padding...)
+  slices.Reverse(value)
+  result := Int {
+    value: big.NewInt(0).SetBytes(value),
   }
-  result := make([]uint64, len(value) / 8)
-  for i := 0; i < len(value) - 8; i += 8 {
-    right := len(value) - i
-    left := len(value) - i - 8
-    result[i/8] = binary.LittleEndian.Uint64(value[left:right])
-  }
-  int_bytes := make([]byte, 0)
-  for len(result) > 0 {
-    int_bytes = binary.BigEndian.AppendUint64(int_bytes, result[0])
-    result = result[1:]
-  }
-  return Int {
-    value: big.NewInt(0).SetBytes(int_bytes),
-  }
+  return result
 }
 
 func IntoLittleEndian(value Int) []byte {
