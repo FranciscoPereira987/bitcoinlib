@@ -431,3 +431,7 @@ func (tx *Transaction) Sign(testnet bool, key *PrivateKey) {
 		tx.SignInput(input, testnet, key)
 	}
 }
+
+func (tx *Transaction) String() string {
+	return hex.EncodeToString(tx.Serialize())
+}
