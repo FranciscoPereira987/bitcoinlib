@@ -153,3 +153,29 @@ func TestEncodingWIF(t *testing.T) {
 
 	}
 }
+
+func TestP2PKHAddress(t *testing.T) {
+	h160, _ := hex.DecodeString("74d691da1574e6b3c192ecfb52cc8984ee7b6c56")
+	expectedMainet := "1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa"
+	expectedTestnet := "mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q"
+	if bitcoinlib.H160P2PKHAddress(h160, false) != expectedMainet {
+		t.Fatal("Failed to create mainet p2pkh address")
+	}
+	if bitcoinlib.H160P2PKHAddress(h160, true) != expectedTestnet {
+		t.Fatal("Failed to create testnet p2pkh address")
+	}
+}
+
+func TestP2SHAddress(t *testing.T) {
+	h160, _ := hex.DecodeString("74d691da1574e6b3c192ecfb52cc8984ee7b6c56")
+	expectedMainet := "3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh"
+	expectedTestnet := "2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B"
+	if bitcoinlib.H160P2SHAddress(h160, false) != expectedMainet {
+		t.Fatalf("Failed to create p2sh mainet address: %s vs %s", 
+			bitcoinlib.H160P2SHAddress(h160, false),
+			expectedMainet)
+	}
+	if bitcoinlib.H160P2SHAddress(h160, true) != expectedTestnet {
+		t.Fatal("Failed to create p2sh testnet address")
+	}
+}

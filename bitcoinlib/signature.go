@@ -62,17 +62,32 @@ func FromBase58Address(str string) string{
 	return hex.EncodeToString(address[1:])
 }
 
-func Address(point Point, secType SecStart, testnet bool) string {
-	secVal := sec(point, secType)
-	hashed := Hash160(secVal)
+func H160P2PKHAddress(hash []byte, testnet bool) string {
 	prefix := []byte{0x00}
 	if testnet {
 		prefix[0] = 0x6f
 	}
-	hashed = append(prefix, hashed...)
-	checksum := Hash256(hashed)
-	hashed = append(hashed, checksum[:4]...)
-	return IntoBase58(hex.EncodeToString(hashed))
+	total := append(prefix, hash...)
+	checksum := Hash256(total)[:4]
+	total = append(total,checksum...)
+	return IntoBase58(hex.EncodeToString(total))
+}
+
+func H160P2SHAddress(hash []byte, testnet bool) string {
+	prefix := []byte{0x05}
+	if testnet {
+		prefix[0] = 0xc4
+	}
+	total := append(prefix, hash...)
+	checksum := Hash256(total)[:4]
+	total = append(total, checksum...)
+	return IntoBase58(hex.EncodeToString(total))
+}
+
+func Address(point Point, secType SecStart, testnet bool) string {
+	secVal := sec(point, secType)
+	hashed := Hash160(secVal)
+	return H160P2PKHAddress(hashed, testnet)
 }
 
 func uncompressedSec(p *FinitePoint) []byte {

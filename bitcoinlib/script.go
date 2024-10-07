@@ -72,7 +72,6 @@ func P2SHPubKey(hash []byte) *ScriptPubKey {
 }
 
 func (s *ScriptPubKey) isP2SH() bool {
-	fmt.Printf("Salgo por aca: %s\n", s.cmds)
 	commands := P2SHPubKey([]byte{}).cmds
 	if len(commands) != len(s.cmds) {
 		return false
@@ -124,7 +123,6 @@ func (t *CombinedScript) EvaluateRedeemScript(z string) bool {
 func (t *CombinedScript) Evaluate(z string) bool {
 	if t.isP2SH {
 		//Evaluate P2SH
-		fmt.Println("Por aca pase")
 		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z)
 	}
 	cmds := make([]Operation, len(t.cmds))
