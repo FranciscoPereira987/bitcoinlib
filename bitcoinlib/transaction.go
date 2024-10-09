@@ -450,3 +450,10 @@ func (tx *Transaction) Sign(testnet bool, key *PrivateKey) {
 func (tx *Transaction) String() string {
 	return hex.EncodeToString(tx.Serialize())
 }
+
+func (tx *Transaction) Height() (uint64, error) {
+	if !tx.IsCoinbase() {
+		return 0, errors.New("Not a valid coinbase transaction")
+	}
+	return tx.inputs[0].scriptSig.Height(), nil
+}

@@ -216,7 +216,7 @@ func parseScriptFromBytes(buf []byte) ([]Operation, error) {
 			//Simple Operation
 			op := OP_CODE_FUNCTIONS[int(current)]
 			if op == nil {
-				fmt.Printf("Adding undefined operation: %d", int(current))
+				fmt.Printf("Adding undefined operation: %d\n", int(current))
 				cmds = append(cmds, &UNDEFINED{int(current)})
 			}else {
 				cmds = append(cmds, op)
@@ -254,4 +254,14 @@ func (t *ScriptPubKey) Serialize() []byte {
 	val := serializeScriptToBytes(t.cmds)
 	length := EncodeVarInt(uint64(len(val)))
 	return append(length, val...)
+}
+
+
+func (t *Script) Height() uint64 {
+	if val, ok := t.cmds[0].(*ScriptVal); ok {
+		buf := make([]byte, 8)
+		copy(buf, val.Val)
+		return binary.LittleEndian.Uint64(buf)
+	}
+	return 0
 }

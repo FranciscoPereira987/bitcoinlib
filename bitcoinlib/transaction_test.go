@@ -190,3 +190,17 @@ func TestIsCoinbase(t *testing.T) {
 		t.Fatal("Could not identify a coinbase transaction")
 	}
 }
+
+func TestCoinbaseHeight(t *testing.T) {
+	tx, _ := bitcoinlib.FetchTransaction("51bdce0f8a1edd5bc023fd4de42edb63478ca67fc8a37a6e533229c17d794d3f", false, false)
+	if !tx.IsCoinbase() {
+		t.Fatal("Could not identify a coinbase transaction")
+	}
+	height, err := tx.Height()
+	if err != nil {
+		t.Fatal("Failed generating transaction height ", height)
+	}
+	if height != 465879 {
+		t.Fatal("Failed getting height, expected: ", 465879, " got: ", height)
+	}
+}
