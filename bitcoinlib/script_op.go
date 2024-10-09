@@ -101,6 +101,19 @@ type Operation interface {
 	Num() int
 }
 
+//Definition for undefined operations
+type UNDEFINED struct {
+	num int
+}
+
+func (op *UNDEFINED) Operate(z string, stack *Stack, altstack *Stack, cmds *Stack) bool {
+	return false
+}
+
+func (op *UNDEFINED) Num() int {
+	return op.num
+}
+
 type Stack = []Operation
 
 func Push(st *Stack, el Operation) {

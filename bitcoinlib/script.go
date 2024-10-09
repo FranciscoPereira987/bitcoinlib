@@ -215,7 +215,12 @@ func parseScriptFromBytes(buf []byte) ([]Operation, error) {
 		} else {
 			//Simple Operation
 			op := OP_CODE_FUNCTIONS[int(current)]
-			cmds = append(cmds, op)
+			if op == nil {
+				fmt.Printf("Adding undefined operation: %d", int(current))
+				cmds = append(cmds, &UNDEFINED{int(current)})
+			}else {
+				cmds = append(cmds, op)
+			}
 		}
 
 	}

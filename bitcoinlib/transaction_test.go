@@ -179,3 +179,14 @@ func TestP2SHTransaction(t *testing.T) {
 		t.Fatal("Failed to verify transaction")
 	}
 }
+
+func TestIsCoinbase(t *testing.T) {
+	tx, _ := bitcoinlib.FetchTransaction("46df1a9484d0a81d03ce0ee543ab6e1a23ed06175c104a178268fad381216c2b", false, false)
+	if tx.IsCoinbase() {
+		t.Fatal("Considered coinbase a transaction that wasn´t")
+	}
+	tx, _ = bitcoinlib.FetchTransaction("51bdce0f8a1edd5bc023fd4de42edb63478ca67fc8a37a6e533229c17d794d3f", false, false)
+	if !tx.IsCoinbase() {
+		t.Fatal("Could not identify a coinbase transaction")
+	}
+}

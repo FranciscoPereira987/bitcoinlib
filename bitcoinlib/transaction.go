@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 )
 
 const VERSION_SIZE = 4
@@ -396,6 +397,20 @@ func NewTransaction() *Transaction {
 		[]*Output{},
 		0,
 	}
+}
+
+func (tx *Transaction) IsCoinbase() bool {
+	coinbase := len(tx.inputs) == 1
+
+	if coinbase {
+		coinbase = tx.inputs[0].previousID == strings.Repeat("00", 32)
+	}
+
+	if coinbase {
+		coinbase = tx.inputs[0].previousIndex == 0xffffffff
+	}
+
+	return coinbase
 }
 
 func (tx *Transaction) AddInput(previousID string, previousIndex uint32) {
