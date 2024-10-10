@@ -78,3 +78,22 @@ func (b *Block) Hash() string {
 	slices.Reverse(hash)
 	return hex.EncodeToString(hash)
 }
+
+func (b *Block) BIP9() bool {
+	//A block is BIP9 if its version starts with 001
+	masked := (b.version >> 29) & 1 
+	return masked == 1
+}
+
+func (b *Block) BIP91() bool {
+	//A BIP91 Block has bit 4 set to 1
+	masked := (b.version >> 4) & 1
+	
+	return masked == 1
+}
+
+func (b *Block) BIP141() bool {
+	//A BIP141 Block has bit 1 set to 1
+	masked := (b.version >> 1) & 1
+	return masked == 1
+}

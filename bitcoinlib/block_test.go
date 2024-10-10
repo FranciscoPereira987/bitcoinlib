@@ -33,3 +33,57 @@ func TestBlockHash(t *testing.T) {
 		t.Fatalf("Expected block hash: %s\nBut got: %s\n", expectedHash, hash)
 	}
 }
+
+func TestBlockBIP9(t *testing.T) {
+	BIP9blockString, _ := hex.DecodeString("000000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	NonBIP9BlockString, _ := hex.DecodeString("000000038ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	block1 := bitcoinlib.NewBlock()
+	block2 := bitcoinlib.NewBlock()
+
+	block1.Parse(bytes.NewReader(BIP9blockString))
+	block2.Parse(bytes.NewReader(NonBIP9BlockString))
+	
+	if !block1.BIP9() {
+		t.Fatal("Block 1 was not Identified ad a BIP9 block")
+	}
+
+	if block2.BIP9() {
+		t.Fatal("Block 2 was Identified as a BIP9 block")
+	}
+}
+
+func TestBIP91(t *testing.T) {
+	BIP91blockString, _ := hex.DecodeString("100000008ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	NonBIP91BlockString, _ := hex.DecodeString("000000038ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	block1 := bitcoinlib.NewBlock()
+	block2 := bitcoinlib.NewBlock()
+
+	block1.Parse(bytes.NewReader(BIP91blockString))
+	block2.Parse(bytes.NewReader(NonBIP91BlockString))
+	
+	if !block1.BIP91() {
+		t.Fatal("Block 1 was not Identified ad a BIP91 block")
+	}
+
+	if block2.BIP91() {
+		t.Fatal("Block 2 was Identified as a BIP91 block")
+	}	
+}
+
+func TestBIP141(t *testing.T) {
+	BIP91blockString, _ := hex.DecodeString("020000008ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	NonBIP91BlockString, _ := hex.DecodeString("000000038ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+	block1 := bitcoinlib.NewBlock()
+	block2 := bitcoinlib.NewBlock()
+
+	block1.Parse(bytes.NewReader(BIP91blockString))
+	block2.Parse(bytes.NewReader(NonBIP91BlockString))
+	
+	if !block1.BIP141() {
+		t.Fatal("Block 1 was not Identified ad a BIP141 block")
+	}
+
+	if block2.BIP141() {
+		t.Fatal("Block 2 was Identified as a BIP141 block")
+	}	
+}
