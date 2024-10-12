@@ -29,6 +29,8 @@ var FOUR Int = Int{
 	value: big.NewInt(4),
 }
 
+var MAX Int = FromHexString(MAX_INT_32)
+
 type Int struct {
 	value *big.Int
 }

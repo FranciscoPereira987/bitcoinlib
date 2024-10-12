@@ -3,6 +3,7 @@ package bitcoinlib_test
 import (
 	"bitcoinlib/bitcoinlib"
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"testing"
 )
@@ -86,4 +87,14 @@ func TestBIP141(t *testing.T) {
 	if block2.BIP141() {
 		t.Fatal("Block 2 was Identified as a BIP141 block")
 	}	
+}
+
+func TestBitsToTarget(t *testing.T) {
+  number := binary.LittleEndian.Uint32([]byte{0xe9, 0x3c, 0x01, 0x18})
+  expected := bitcoinlib.FromHexString("0x0000000000000000013ce9000000000000000000000000000000000000000000")
+
+  got := bitcoinlib.BitsToTarget(number)
+  if got.Ne(expected) {
+    t.Fatalf("Expected: %s but got %s\n", expected.String(), got.String())
+  }
 }

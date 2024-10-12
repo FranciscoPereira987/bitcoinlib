@@ -19,6 +19,14 @@ type Block struct {
 	nonce uint32
 }
 
+func BitsToTarget(bits uint32) Int {
+  exponent := FromInt(int(bits >> 24)-3)
+  coefficient := FromInt(int((bits << 8) >> 8))
+  base := FromInt(256)
+  return coefficient.Mul(base.Exp(exponent, MAX)) 
+
+}
+
 //Returns a clean block
 func NewBlock() *Block {
 	return &Block{}
@@ -96,4 +104,8 @@ func (b *Block) BIP141() bool {
 	//A BIP141 Block has bit 1 set to 1
 	masked := (b.version >> 1) & 1
 	return masked == 1
+}
+
+func (b *Block) BitsToTarget() Int {
+  return BitsToTarget(b.blockBits) 
 }
