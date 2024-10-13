@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 )
@@ -24,6 +25,28 @@ func BitsToTarget(bits uint32) Int {
   coefficient := FromInt(int((bits << 8) >> 8))
   base := FromInt(256)
   return coefficient.Mul(base.Exp(exponent, MAX)) 
+}
+
+func TwoWeeks() uint32 {
+  return 14*24*60*60
+}
+
+func EightWeeks() uint32 {
+  return TwoWeeks() * 4
+}
+
+func ThreeDaysAndAHalf() uint32 {
+  return 60*60*12*7
+}
+
+func GetUpdateCoef(from uint32, to uint32) uint32 {
+  distance := to-from
+  if distance < ThreeDaysAndAHalf() {
+    distance = ThreeDaysAndAHalf()
+  }else if distance > EightWeeks() {
+    distance = EightWeeks()
+  }
+  return (distance) / TwoWeeks()
 }
 
 //Returns a clean block
@@ -120,4 +143,20 @@ func (b *Block) CheckPOW() bool {
   hash := b.Hash()
   hashInt := FromHexString("0x"+hash)
   return hashInt.Le(target)
+}
+
+func (b *Block) GetNextTarget(b2 *Block) uint32 {
+  updateCoeff := GetUpdateCoef(b.timestamp, b2.timestamp)
+  nextTarget := b2.BitsToTarget().Mul(FromInt(int(updateCoeff)))
+  asBytes := nextTarget.value.Bytes()
+  fmt.Println(nextTarget.String(), hex.EncodeToString(asBytes))
+  exponent := len(asBytes)
+  coefficient := asBytes[:3]
+  if asBytes[0] > 0x7f {
+    exponent++
+    coefficient = append([]byte{0}, coefficient[:2]...)
+  }
+  slices.Reverse(coefficient)
+  bits := append(coefficient, byte(exponent))
+  return binary.LittleEndian.Uint32(bits)
 }
