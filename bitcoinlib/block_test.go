@@ -92,9 +92,22 @@ func TestBIP141(t *testing.T) {
 func TestBitsToTarget(t *testing.T) {
   number := binary.LittleEndian.Uint32([]byte{0xe9, 0x3c, 0x01, 0x18})
   expected := bitcoinlib.FromHexString("0x0000000000000000013ce9000000000000000000000000000000000000000000")
+  
+  
 
   got := bitcoinlib.BitsToTarget(number)
   if got.Ne(expected) {
     t.Fatalf("Expected: %s but got %s\n", expected.String(), got.String())
+  }
+}
+
+func TestDifficulty(t *testing.T) {
+  expected := bitcoinlib.FromInt(888171856257)
+	blockString, _ := hex.DecodeString("020000008ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d")
+  block := bitcoinlib.NewBlock()
+  block.Parse(bytes.NewReader(blockString))
+  genesis := bitcoinlib.BitsToTarget(0x1d00ffff)
+  if block.Difficulty().Ne(expected) {
+    t.Fatalf("Expected: %s but got: %s, diff: %s", expected.String(), block.Difficulty().String(),genesis.String()) 
   }
 }

@@ -9,7 +9,7 @@ import (
 
 var MAX_INT_64 uint64 = 0x8000000000000000
 
-var MAX_INT_32 string = "0xffffffffffffffffffffffffffffffffffffffffffffffff"
+var MAX_INT_32 string = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 
 var ZERO Int = Int{
 	value: big.NewInt(0),
@@ -142,7 +142,7 @@ func (i Int) Mod(other Int) Int {
 }
 
 func (i Int) Exp(other Int, mod Int) Int {
-	return Int{
+  return Int{
 		value: big.NewInt(0).Exp(i.value, other.value, mod.value),
 	}
 }

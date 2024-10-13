@@ -24,7 +24,6 @@ func BitsToTarget(bits uint32) Int {
   coefficient := FromInt(int((bits << 8) >> 8))
   base := FromInt(256)
   return coefficient.Mul(base.Exp(exponent, MAX)) 
-
 }
 
 //Returns a clean block
@@ -58,7 +57,7 @@ func (b *Block) Parse(from io.Reader) error {
 	//Reading the bits field
 	buf = buf[4:]
 	b.blockBits = binary.LittleEndian.Uint32(buf)
-	//Reading the nonce field
+	//Reading the nonce field0xffff * 256**(0x1d-3)
 	buf = buf[4:]
 	b.nonce = binary.LittleEndian.Uint32(buf)
 	return nil
@@ -108,4 +107,10 @@ func (b *Block) BIP141() bool {
 
 func (b *Block) BitsToTarget() Int {
   return BitsToTarget(b.blockBits) 
+}
+
+func (b *Block) Difficulty() Int {
+  genesis := BitsToTarget(0x1d00ffff) 
+   
+  return genesis.Div(b.BitsToTarget()) 
 }
