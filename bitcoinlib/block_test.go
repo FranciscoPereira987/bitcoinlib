@@ -111,3 +111,22 @@ func TestDifficulty(t *testing.T) {
     t.Fatalf("Expected: %s but got: %s, diff: %s", expected.String(), block.Difficulty().String(),genesis.String()) 
   }
 }
+
+func TestPOW(t *testing.T) {
+  block1String, _ := hex.DecodeString("04000000fbedbbf0cfdaf278c094f187f2eb987c86a199da22bbb20400000000000000007b7697b29129648fa08b4bcd13c9d5e60abb973a1efac9c8d573c71c807c56c3d6213557faa80518c3737ec1")
+  block2String, _ := hex.DecodeString("04000000fbedbbf0cfdaf278c094f187f2eb987c86a199da22bbb20400000000000000007b7697b29129648fa08b4bcd13c9d5e60abb973a1efac9c8d573c71c807c56c3d6213557faa80518c3737ec0")
+
+  block1 := bitcoinlib.NewBlock()
+  block2 := bitcoinlib.NewBlock()
+
+  block1.Parse(bytes.NewReader(block1String))
+  block2.Parse(bytes.NewReader(block2String))
+
+  if !block1.CheckPOW() {
+    t.Fatal("Failed checking block1 Proof Of Work")
+  }
+
+  if block2.CheckPOW() {
+    t.Fatal("Failed checking block2 Proof Of Work")
+  }
+}

@@ -114,3 +114,10 @@ func (b *Block) Difficulty() Int {
    
   return genesis.Div(b.BitsToTarget()) 
 }
+
+func (b *Block) CheckPOW() bool {
+  target := b.BitsToTarget()
+  hash := b.Hash()
+  hashInt := FromHexString("0x"+hash)
+  return hashInt.Le(target)
+}
