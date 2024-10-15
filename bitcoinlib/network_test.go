@@ -43,3 +43,12 @@ func TestSerializing(t *testing.T) {
 		t.Fatal("Second serialization was different from actual message")
 	}
 }
+
+func TestVersionMessage(t *testing.T) {
+    m := bitcoinlib.NewVersionMessage()
+	expected := "7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff00000000208d000000000000000000000000000000000000ffff00000000208d0000000000000000182f70726f6772616d6d696e67626974636f696e3a302e312f0000000000"
+	serialized := hex.EncodeToString(m.Serialize())
+	if expected != serialized {
+		t.Fatalf("Expected serialization\n%s\nBut got instead\n%s\n", expected, serialized)
+	}
+}

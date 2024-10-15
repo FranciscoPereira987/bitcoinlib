@@ -10,10 +10,45 @@ import (
 const MAINNET_MAGIC = 0xf9beb4d9
 const TESTNET_MAGIC = 0X0b110907
 
+var IPV4_BASE = [16]byte{0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}
+
 type NetworkMessage struct {
 	magic uint32
 	command [12]byte
 	payload []byte
+}
+
+type VersionMessage struct {
+	Protocol uint32
+	Services uint64
+	Timestamp uint64
+	RecieverServices uint64
+	RecieverAddress [16]byte
+	RecieverPort uint16
+	SenderServices uint64
+	SenderAddress [16]byte
+	SenderPort uint16
+	Nonce uint64
+	UserAgent string
+	Height uint32
+	RelayFlag bool
+}
+
+func NewVersionMessage() *VersionMessage {
+	return &VersionMessage{
+			Protocol: 70015,
+			Services: 0,
+			Timestamp: 0,
+			RecieverServices: 0,
+			RecieverAddress: IPV4_BASE,
+			RecieverPort: 8333,
+			SenderServices: 0,
+			SenderAddress: IPV4_BASE,
+			SenderPort: 8333,
+			Nonce: 0,
+			UserAgent: "/programmingbitcoin:0.1/",
+			RelayFlag: false,
+	}
 }
 
 func NewNetworkMessage(testnet bool) *NetworkMessage {
@@ -117,4 +152,26 @@ func (m *NetworkMessage) GetCommand() string {
 
 func (m *NetworkMessage) GetPayload() []byte {
 	return m.payload
+}
+
+func (m *VersionMessage) Serialize() []byte {
+	buf := binary.LittleEndian.AppendUint32(nil, m.Protocol)
+	buf = binary.LittleEndian.AppendUint64(buf, m.Services)
+	buf = binary.LittleEndian.AppendUint64(buf, m.Timestamp)
+	buf = binary.LittleEndian.AppendUint64(buf, m.RecieverServices)
+	buf = append(buf, m.RecieverAddress[:]...)
+	buf = binary.BigEndian.AppendUint16(buf, m.RecieverPort)
+	buf = binary.LittleEndian.AppendUint64(buf,m.SenderServices)
+	buf = append(buf, m.SenderAddress[:]...)
+	buf = binary.BigEndian.AppendUint16(buf, m.SenderPort)
+	buf = binary.BigEndian.AppendUint64(buf, m.Nonce)
+	buf = append(buf, EncodeVarInt(uint64(len(m.UserAgent)))...)
+	buf = append(buf, []byte(m.UserAgent)...)
+	buf = binary.BigEndian.AppendUint32(buf, m.Height)
+	if m.RelayFlag {
+		buf = append(buf, 1)
+	}else {
+		buf = append(buf, 0)
+	}
+	return buf
 }
