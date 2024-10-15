@@ -12,6 +12,18 @@ const TESTNET_MAGIC = 0X0b110907
 
 var IPV4_BASE = [16]byte{0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}
 
+var VERACK_COMMAND = IntoCommand("verack")
+var VERSION_COMMAND = IntoCommand("version")
+
+
+func IntoCommand(value string) [12]byte {
+	buf := [12]byte{}
+	if len(value) <= 12 {
+		copy(buf[:], []byte(value))
+	}
+	return buf
+}
+
 type NetworkMessage struct {
 	magic uint32
 	command [12]byte
@@ -32,6 +44,12 @@ type VersionMessage struct {
 	UserAgent string
 	Height uint32
 	RelayFlag bool
+}
+
+type VerackMessage struct {}
+
+func NewVerackMessage() *VerackMessage {
+	return &VerackMessage{}
 }
 
 func NewVersionMessage() *VersionMessage {
@@ -174,4 +192,8 @@ func (m *VersionMessage) Serialize() []byte {
 		buf = append(buf, 0)
 	}
 	return buf
+}
+
+func (m *VerackMessage) Serialize() []byte {
+	return []byte{}
 }
