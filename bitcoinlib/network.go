@@ -2,6 +2,7 @@ package bitcoinlib
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -10,11 +11,26 @@ import (
 const MAINNET_MAGIC = 0xf9beb4d9
 const TESTNET_MAGIC = 0X0b110907
 
+const VERACK = "verack"
+const VERSION = "version"
+
 var IPV4_BASE = [16]byte{0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}
 
-var VERACK_COMMAND = IntoCommand("verack")
-var VERSION_COMMAND = IntoCommand("version")
+var VERACK_COMMAND = IntoCommand(VERACK)
+var VERSION_COMMAND = IntoCommand(VERSION)
 
+
+func IPAddressFromString(add string) [16]byte {
+	converted, _ := hex.DecodeString(add)
+	var ipAddr [16]byte = IPV4_BASE
+	if len(converted) == 4 {
+		copy(ipAddr[12:], converted)
+	}else {
+		//I assume its an IPV6 Addr
+		copy(ipAddr[:], converted)
+	}
+	return ipAddr
+}
 
 func IntoCommand(value string) [12]byte {
 	buf := [12]byte{}
@@ -22,6 +38,12 @@ func IntoCommand(value string) [12]byte {
 		copy(buf[:], []byte(value))
 	}
 	return buf
+}
+
+type Message interface {
+	Serialize() []byte
+	Command() [12]byte
+	Parse([]byte) (Message, error)
 }
 
 type NetworkMessage struct {
@@ -194,6 +216,52 @@ func (m *VersionMessage) Serialize() []byte {
 	return buf
 }
 
+func (m *VersionMessage) Command() [12]byte {
+	return VERSION_COMMAND
+}
+
 func (m *VerackMessage) Serialize() []byte {
 	return []byte{}
+}
+
+func (m *VerackMessage) Command() [12]byte {
+	return VERACK_COMMAND
+}
+
+func (m *VersionMessage) Parse(stream []byte) (Message, error) {
+	m.Protocol = binary.LittleEndian.Uint32(stream)
+	stream = stream[4:]
+	m.Services = binary.LittleEndian.Uint64(stream)
+	stream = stream[4:]
+	m.Timestamp = binary.LittleEndian.Uint64(stream)
+	stream = stream[4:]
+	m.RecieverServices = binary.LittleEndian.Uint64(stream)
+	stream = stream[8:]
+	m.RecieverAddress = [16]byte(stream[:16])
+	stream = stream[16:]
+	m.RecieverPort = binary.BigEndian.Uint16(stream)
+	stream = stream[2:]
+	m.SenderServices = binary.LittleEndian.Uint64(stream)
+	stream = stream[8:]
+	m.SenderAddress = [16]byte(stream[:16])
+	stream = stream[16:]
+	m.SenderPort = binary.BigEndian.Uint16(stream)
+	stream = stream[2:]
+	m.Nonce = binary.LittleEndian.Uint64(stream)
+	stream = stream[8:]
+	userAgentLength, total := binary.Varint(stream)
+	stream = stream[total:]
+	m.UserAgent = string(stream[:userAgentLength])
+	stream = stream[userAgentLength:]
+	m.Height = binary.BigEndian.Uint32(stream)
+	stream = stream[4:]
+	m.RelayFlag = (len(stream) > 0 && stream[0] == 1)
+	return m, nil
+}
+
+func (m *VerackMessage) Parse(stream []byte) (Message, error) {
+	if len(stream) != 0 {
+		return nil, errors.New("invalid Verack payload")
+	}
+	return m, nil
 }
