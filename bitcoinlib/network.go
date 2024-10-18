@@ -122,9 +122,9 @@ func NewVersionMessage() *VersionMessage {
 func NewNetworkMessage(testnet bool) *NetworkMessage {
 	var magic uint32
 	if testnet {
-		magic = MAINNET_MAGIC
+		magic = TESTNET_MAGIC 
 	} else {
-		magic = TESTNET_MAGIC
+		magic = MAINNET_MAGIC
 	}
 	return &NetworkMessage{
 		magic,
@@ -142,7 +142,7 @@ func readMagic(from io.Reader) (magic uint32, err error) {
 	buf := make([]byte, 4)
 	total, err := from.Read(buf)
 	if err != nil || total < len(buf) {
-		err = errors.Join(err, errors.New("invalid magic read"))
+    err = errors.Join(err, errors.New("invalid magic read"))
 	} else {
 		magic = binary.BigEndian.Uint32(buf)
 	}
@@ -240,7 +240,7 @@ func (m *VersionMessage) Serialize() []byte {
 	buf = binary.BigEndian.AppendUint64(buf, m.Nonce)
 	buf = append(buf, EncodeVarInt(uint64(len(m.UserAgent)))...)
 	buf = append(buf, []byte(m.UserAgent)...)
-	buf = binary.BigEndian.AppendUint32(buf, m.Height)
+	buf = binary.LittleEndian.AppendUint32(buf, m.Height)
 	if m.RelayFlag {
 		buf = append(buf, 1)
 	} else {
@@ -262,12 +262,12 @@ func (m *VerackMessage) Command() [12]byte {
 }
 
 func (m *VersionMessage) Parse(stream []byte) (Message, error) {
-	m.Protocol = binary.LittleEndian.Uint32(stream)
+  m.Protocol = binary.LittleEndian.Uint32(stream)
 	stream = stream[4:]
 	m.Services = binary.LittleEndian.Uint64(stream)
-	stream = stream[4:]
+	stream = stream[8:]
 	m.Timestamp = binary.LittleEndian.Uint64(stream)
-	stream = stream[4:]
+	stream = stream[8:]
 	m.RecieverServices = binary.LittleEndian.Uint64(stream)
 	stream = stream[8:]
 	m.RecieverAddress = [16]byte(stream[:16])
@@ -282,7 +282,7 @@ func (m *VersionMessage) Parse(stream []byte) (Message, error) {
 	stream = stream[2:]
 	m.Nonce = binary.LittleEndian.Uint64(stream)
 	stream = stream[8:]
-	userAgentLength, total := binary.Varint(stream)
+	userAgentLength, total := binary.Varint(stream) 
 	stream = stream[total:]
 	m.UserAgent = string(stream[:userAgentLength])
 	stream = stream[userAgentLength:]

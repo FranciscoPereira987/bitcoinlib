@@ -70,8 +70,8 @@ func (sn *SimpleNode) WaitFor(commands map[string]Message) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("Read a message")
 		command = envelope.GetCommand()
+    fmt.Println("Read a message: ", command)
 		if envelope.EqCommand(VERSION_MESSAGE) {
 			sn.Send(NewVerackMessage())
 		} else if envelope.EqCommand(PING_MESSAGE) {
