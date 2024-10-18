@@ -1,31 +1,41 @@
 package bitcoinlib
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
 
 const MAINNET_MAGIC = 0xf9beb4d9
-const TESTNET_MAGIC = 0X0b110907
+const TESTNET_MAGIC = 0x0b110907
 
 const VERACK = "verack"
 const VERSION = "version"
+const PING = "ping"
+const PONG = "pong"
 
-var IPV4_BASE = [16]byte{0,0,0,0,0,0,0,0,0,0,0xff,0xff,0,0,0,0}
+var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
 
 var VERACK_COMMAND = IntoCommand(VERACK)
 var VERSION_COMMAND = IntoCommand(VERSION)
+var PING_COMMAND = IntoCommand(PING)
+var PONG_COMMAND = IntoCommand(PONG)
 
+var VERSION_MESSAGE = NewVersionMessage()
+var VERACK_MESSAGE = NewVerackMessage()
+var PONG_MESSAGE = NewPongMessage(0)
+var PING_MESSAGE = NewPingMessage(0)
 
 func IPAddressFromString(add string) [16]byte {
 	converted, _ := hex.DecodeString(add)
 	var ipAddr [16]byte = IPV4_BASE
 	if len(converted) == 4 {
 		copy(ipAddr[12:], converted)
-	}else {
+	} else {
 		//I assume its an IPV6 Addr
 		copy(ipAddr[:], converted)
 	}
@@ -47,55 +57,73 @@ type Message interface {
 }
 
 type NetworkMessage struct {
-	magic uint32
+	magic   uint32
 	command [12]byte
 	payload []byte
 }
 
 type VersionMessage struct {
-	Protocol uint32
-	Services uint64
-	Timestamp uint64
+	Protocol         uint32
+	Services         uint64
+	Timestamp        uint64
 	RecieverServices uint64
-	RecieverAddress [16]byte
-	RecieverPort uint16
-	SenderServices uint64
-	SenderAddress [16]byte
-	SenderPort uint16
-	Nonce uint64
-	UserAgent string
-	Height uint32
-	RelayFlag bool
+	RecieverAddress  [16]byte
+	RecieverPort     uint16
+	SenderServices   uint64
+	SenderAddress    [16]byte
+	SenderPort       uint16
+	Nonce            uint64
+	UserAgent        string
+	Height           uint32
+	RelayFlag        bool
 }
 
-type VerackMessage struct {}
+type VerackMessage struct{}
+
+type PingMessage struct {
+	nonce uint64
+}
+
+type PongMessage struct {
+	nonce uint64
+}
+
+func NewPingMessage(nonce uint64) *PingMessage {
+	return &PingMessage{nonce}
+}
+
+func NewPongMessage(nonce uint64) *PongMessage {
+	return &PongMessage{nonce}
+}
 
 func NewVerackMessage() *VerackMessage {
 	return &VerackMessage{}
 }
 
 func NewVersionMessage() *VersionMessage {
+	time := uint64(time.Now().Unix())
+	nonce, _ := rand.Int(rand.Reader, FromInt(2).Exp(FromInt(64), ZERO).value)
 	return &VersionMessage{
-			Protocol: 70015,
-			Services: 0,
-			Timestamp: 0,
-			RecieverServices: 0,
-			RecieverAddress: IPV4_BASE,
-			RecieverPort: 8333,
-			SenderServices: 0,
-			SenderAddress: IPV4_BASE,
-			SenderPort: 8333,
-			Nonce: 0,
-			UserAgent: "/programmingbitcoin:0.1/",
-			RelayFlag: false,
+		Protocol:         70015,
+		Services:         0,
+		Timestamp:        time,
+		RecieverServices: 0,
+		RecieverAddress:  IPV4_BASE,
+		RecieverPort:     8333,
+		SenderServices:   0,
+		SenderAddress:    IPV4_BASE,
+		SenderPort:       8333,
+		Nonce:            uint64(nonce.Int64()),
+		UserAgent:        "/programmingbitcoin:0.1/",
+		RelayFlag:        false,
 	}
 }
 
 func NewNetworkMessage(testnet bool) *NetworkMessage {
-	var magic uint32 
+	var magic uint32
 	if testnet {
 		magic = MAINNET_MAGIC
-	}else {
+	} else {
 		magic = TESTNET_MAGIC
 	}
 	return &NetworkMessage{
@@ -105,12 +133,17 @@ func NewNetworkMessage(testnet bool) *NetworkMessage {
 	}
 }
 
+func (nm *NetworkMessage) EqCommand(m Message) bool {
+	other := m.Command()
+	return string(nm.command[:]) == string(other[:])
+}
+
 func readMagic(from io.Reader) (magic uint32, err error) {
 	buf := make([]byte, 4)
 	total, err := from.Read(buf)
 	if err != nil || total < len(buf) {
 		err = errors.Join(err, errors.New("invalid magic read"))
-	}else {
+	} else {
 		magic = binary.BigEndian.Uint32(buf)
 	}
 	return
@@ -131,7 +164,7 @@ func readPayload(from io.Reader) (checksum uint32, payload []byte, err error) {
 		err = errors.Join(err, errors.New("invalid payload length read"))
 		return
 	}
-	buf = make([]byte, 4 + binary.LittleEndian.Uint32(buf))
+	buf = make([]byte, 4+binary.LittleEndian.Uint32(buf))
 	total, err = from.Read(buf)
 	if err != nil || total < len(buf) {
 		err = errors.Join(err, errors.New("payload invalid read"))
@@ -184,7 +217,7 @@ func (m *NetworkMessage) Serialize() []byte {
 
 func (m *NetworkMessage) GetCommand() string {
 	lastIndex := 0
-	for lastIndex < len(m.command) && m.command[lastIndex] != 0{
+	for lastIndex < len(m.command) && m.command[lastIndex] != 0 {
 		lastIndex++
 	}
 	return string(m.command[:lastIndex])
@@ -201,7 +234,7 @@ func (m *VersionMessage) Serialize() []byte {
 	buf = binary.LittleEndian.AppendUint64(buf, m.RecieverServices)
 	buf = append(buf, m.RecieverAddress[:]...)
 	buf = binary.BigEndian.AppendUint16(buf, m.RecieverPort)
-	buf = binary.LittleEndian.AppendUint64(buf,m.SenderServices)
+	buf = binary.LittleEndian.AppendUint64(buf, m.SenderServices)
 	buf = append(buf, m.SenderAddress[:]...)
 	buf = binary.BigEndian.AppendUint16(buf, m.SenderPort)
 	buf = binary.BigEndian.AppendUint64(buf, m.Nonce)
@@ -210,7 +243,7 @@ func (m *VersionMessage) Serialize() []byte {
 	buf = binary.BigEndian.AppendUint32(buf, m.Height)
 	if m.RelayFlag {
 		buf = append(buf, 1)
-	}else {
+	} else {
 		buf = append(buf, 0)
 	}
 	return buf
@@ -263,5 +296,37 @@ func (m *VerackMessage) Parse(stream []byte) (Message, error) {
 	if len(stream) != 0 {
 		return nil, errors.New("invalid Verack payload")
 	}
+	return m, nil
+}
+
+func (m *PongMessage) Serialize() []byte {
+	return binary.BigEndian.AppendUint64(nil, m.nonce)
+}
+
+func (m *PongMessage) Command() [12]byte {
+	return PONG_COMMAND
+}
+
+func (m *PongMessage) Parse(stream []byte) (Message, error) {
+	if len(stream) != 8 {
+		return nil, errors.New("invalid poing message")
+	}
+	m.nonce = binary.BigEndian.Uint64(stream)
+	return m, nil
+}
+
+func (m *PingMessage) Serialize() []byte {
+	return binary.BigEndian.AppendUint64(nil, m.nonce)
+}
+
+func (m *PingMessage) Command() [12]byte {
+	return PING_COMMAND
+}
+
+func (m *PingMessage) Parse(stream []byte) (Message, error) {
+	if len(stream) != 8 {
+		return nil, errors.New("invalid poing message")
+	}
+	m.nonce = binary.BigEndian.Uint64(stream)
 	return m, nil
 }

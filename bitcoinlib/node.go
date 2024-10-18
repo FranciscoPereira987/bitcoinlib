@@ -7,24 +7,24 @@ import (
 )
 
 type SimpleNode struct {
-	host [16]byte
-	port uint16
+	host       [16]byte
+	port       uint16
 	connection net.Conn
-	testnet bool
-	logging bool
+	testnet    bool
+	logging    bool
 }
 
 type NodeParams struct {
-	Addr string
-	Port uint16
+	Addr    string
+	Port    uint16
 	Testnet bool
 	Logging bool
 }
 
 func NewSimpleNode(params NodeParams) *SimpleNode {
-	if params.Port == 0 && params.Testnet{
+	if params.Port == 0 && params.Testnet {
 		params.Port = 18333
-	}else if params.Port == 0 {
+	} else if params.Port == 0 {
 		params.Port = 8333
 	}
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Addr, params.Port))
@@ -32,7 +32,7 @@ func NewSimpleNode(params NodeParams) *SimpleNode {
 		panic(fmt.Sprintf("Could not connect to host %s because of %s", params.Addr, err))
 	}
 	return &SimpleNode{
-		IPAddressFromString(params.Addr),
+		IPAddressFromString(conn.RemoteAddr().String()),
 		params.Port,
 		conn,
 		params.Testnet,
@@ -65,14 +65,19 @@ func (sn *SimpleNode) WaitFor(commands map[string]Message) (Message, error) {
 	var command string
 	var envelope *NetworkMessage
 	var err error
-	for _,ok := commands[command];!ok; _,ok = commands[command]{
+	for _, ok := commands[command]; !ok; _, ok = commands[command] {
 		envelope, err = sn.Read()
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("Read a message")
 		command = envelope.GetCommand()
-		if command == VERSION {
+		if envelope.EqCommand(VERSION_MESSAGE) {
 			sn.Send(NewVerackMessage())
+		} else if envelope.EqCommand(PING_MESSAGE) {
+			PING_MESSAGE.Parse(envelope.payload)
+			PONG_MESSAGE.nonce = PING_MESSAGE.nonce
+			sn.Send(PONG_MESSAGE)
 		}
 	}
 	return commands[command].Parse(envelope.payload)
