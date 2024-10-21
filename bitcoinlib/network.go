@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 )
 
@@ -17,6 +18,7 @@ const VERACK = "verack"
 const VERSION = "version"
 const PING = "ping"
 const PONG = "pong"
+const GETHEADERS = "getheaders"
 
 var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
 
@@ -24,6 +26,8 @@ var VERACK_COMMAND = IntoCommand(VERACK)
 var VERSION_COMMAND = IntoCommand(VERSION)
 var PING_COMMAND = IntoCommand(PING)
 var PONG_COMMAND = IntoCommand(PONG)
+var GETHEADERS_COMMAND = IntoCommand(GETHEADERS)
+
 
 var VERSION_MESSAGE = NewVersionMessage()
 var VERACK_MESSAGE = NewVerackMessage()
@@ -87,6 +91,23 @@ type PingMessage struct {
 type PongMessage struct {
 	nonce uint64
 }
+
+type GetHeadersMessage struct {
+  version uint32
+  hashes  uint8
+  startBlock string
+  endBlock   string
+}
+
+func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
+  return &GetHeadersMessage{
+    version: 70015,
+    hashes: 1,
+    startBlock: startBlock,
+    endBlock: endBlock,
+  }
+}
+
 
 func NewPingMessage(nonce uint64) *PingMessage {
 	return &PingMessage{nonce}
@@ -329,4 +350,46 @@ func (m *PingMessage) Parse(stream []byte) (Message, error) {
 	}
 	m.nonce = binary.BigEndian.Uint64(stream)
 	return m, nil
+}
+
+func (m *GetHeadersMessage) Serialize() []byte {
+  buf := binary.LittleEndian.AppendUint32(nil, m.version)
+  buf = append(buf, m.hashes)
+  start, err := hex.DecodeString(m.startBlock)
+  if err != nil || len(start) != 32 {
+    panic(fmt.Sprintf("Error: %s with length %d", err, len(start)))
+  }
+  end, err := hex.DecodeString(m.endBlock)
+  if err != nil {
+    panic(fmt.Sprintf("Error: %s", err))
+  }
+  if len(end) != 32 {
+    end = make([]byte, 32)
+  }
+  //Need to use start and end as little endian
+  slices.Reverse(start)
+  slices.Reverse(end)
+  buf = append(buf, start...)
+  return append(buf, end...)
+}
+
+func (m *GetHeadersMessage) Command() [12]byte {
+  return GETHEADERS_COMMAND
+}
+
+func (m *GetHeadersMessage) Parse(stream []byte) (Message, error) {
+  m.version = binary.LittleEndian.Uint32(stream)
+  stream = stream[4:]
+  m.hashes = stream[0]
+  stream = stream[1:]
+  if len(stream) != 64 {
+    return nil, fmt.Errorf("invalid stream length for blocks id, expected 64, but got %d", len(stream))
+  }
+  start := stream[:32]
+  slices.Reverse(start)
+  end := stream[32:]
+  slices.Reverse(end)
+  m.startBlock = hex.EncodeToString(start)
+  m.endBlock = hex.EncodeToString(end)
+  return m, nil
 }

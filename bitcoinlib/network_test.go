@@ -54,3 +54,18 @@ func TestVersionMessage(t *testing.T) {
 		t.Fatalf("Expected serialization\n%s\nBut got instead\n%s\n", expected, serialized)
 	}
 }
+
+func TestGetHeadersMessage(t *testing.T) {
+  m := bitcoinlib.NewGetHeadersMessage("0000000000000000001237f46acddf58578a37e213d2a6edc4884a2fcad05ba3", "")
+  toParse := "7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000" 
+  serialized := hex.EncodeToString(m.Serialize())
+  if serialized != toParse {
+    t.Fatalf("Serialization fail \n %s\n!=\n%s", toParse, serialized)
+  }
+  m = bitcoinlib.NewGetHeadersMessage("", "")
+  asBytes, _ := hex.DecodeString(toParse)
+  r,_ := m.Parse(asBytes)
+  if hex.EncodeToString(r.Serialize()) != toParse {
+    t.Fatalf("Failed parsing")
+  }
+}
