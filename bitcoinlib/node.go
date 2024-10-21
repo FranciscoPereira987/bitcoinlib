@@ -61,6 +61,38 @@ func (sn *SimpleNode) Read() (*NetworkMessage, error) {
 	return message, err
 }
 
+func (sn *SimpleNode) Handshake() error {
+  err := sn.Send(NewVersionMessage())
+	if err != nil {
+    return fmt.Errorf("Error sending version message: %s", err)
+	}
+  if sn.logging {
+    fmt.Println("Sent Version Message")
+  }
+	commands := map[string]Message{
+		VERSION: NewVersionMessage(),
+		VERACK:  NewVerackMessage(),
+	}
+	verackRecieved := false
+	versionRecieved := false
+	for !verackRecieved || !versionRecieved {
+		rcv, err := sn.WaitFor(commands)
+		if err != nil {
+      return fmt.Errorf("Error waiting for commands: %s", err) 
+		}
+		command := rcv.Command()
+    verackRecieved = verackRecieved || string(command[:]) == string(VERACK_COMMAND[:])
+    versionRecieved = versionRecieved || string(command[:]) == string(VERSION_COMMAND[:])
+    if sn.logging {
+      fmt.Println("Recieved command: ", string(command[:]))
+    }
+	}
+  if sn.logging{
+    fmt.Println("Handshaked succesfully with node !")
+  }
+  return nil
+}
+
 func (sn *SimpleNode) WaitFor(commands map[string]Message) (Message, error) {
 	var command string
 	var envelope *NetworkMessage
@@ -71,7 +103,9 @@ func (sn *SimpleNode) WaitFor(commands map[string]Message) (Message, error) {
 			return nil, err
 		}
 		command = envelope.GetCommand()
-    fmt.Println("Read a message: ", command)
+    if sn.logging{
+      fmt.Println("Read a message: ", command)
+    }
 		if envelope.EqCommand(VERSION_MESSAGE) {
 			sn.Send(NewVerackMessage())
 		} else if envelope.EqCommand(PING_MESSAGE) {

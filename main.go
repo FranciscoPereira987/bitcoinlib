@@ -32,34 +32,12 @@ func nodeMain() {
 	params := bitcoinlib.NodeParams{
 		Addr:    "testnet-seed.bitcoin.jonasschnelli.ch",
 		Testnet: true,
-    Logging: true,
 	}
 	node := bitcoinlib.NewSimpleNode(params)
-	fmt.Println("Created node")
-	err := node.Send(bitcoinlib.NewVersionMessage())
-	if err != nil {
-		fmt.Printf("Error sending version message: %s\n", err)
-		return
-	}
-	fmt.Println("Sent Version Message")
-	commands := map[string]bitcoinlib.Message{
-		bitcoinlib.VERSION: bitcoinlib.NewVersionMessage(),
-		bitcoinlib.VERACK:  bitcoinlib.NewVerackMessage(),
-	}
-	verackRecieved := false
-	versionRecieved := false
-	for !verackRecieved || !versionRecieved {
-		rcv, err := node.WaitFor(commands)
-		if err != nil {
-			fmt.Printf("Error waiting for message: %s\n", err)
-			return
-		}
-		command := rcv.Command()
-    verackRecieved = verackRecieved || string(command[:]) == string(bitcoinlib.VERACK_COMMAND[:])
-    versionRecieved = versionRecieved || string(command[:]) == string(bitcoinlib.VERSION_COMMAND[:])
-		fmt.Println("Recieved command: ", command)
-	}
-	fmt.Println("Handshaked succesfully with node !")
+  err := node.Handshake()
+  if err != nil {
+    fmt.Println("Error: ", err)
+  }
 }
 
 func main() {
