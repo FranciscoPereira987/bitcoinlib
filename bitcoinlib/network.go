@@ -1,6 +1,7 @@
 package bitcoinlib
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -18,6 +19,7 @@ const VERACK = "verack"
 const VERSION = "version"
 const PING = "ping"
 const PONG = "pong"
+const HEADERS = "headers"
 const GETHEADERS = "getheaders"
 
 var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
@@ -27,12 +29,13 @@ var VERSION_COMMAND = IntoCommand(VERSION)
 var PING_COMMAND = IntoCommand(PING)
 var PONG_COMMAND = IntoCommand(PONG)
 var GETHEADERS_COMMAND = IntoCommand(GETHEADERS)
-
+var HEADERS_COMMAND = IntoCommand(HEADERS)
 
 var VERSION_MESSAGE = NewVersionMessage()
 var VERACK_MESSAGE = NewVerackMessage()
 var PONG_MESSAGE = NewPongMessage(0)
 var PING_MESSAGE = NewPingMessage(0)
+
 
 func IPAddressFromString(add string) [16]byte {
 	converted, _ := hex.DecodeString(add)
@@ -99,6 +102,10 @@ type GetHeadersMessage struct {
   endBlock   string
 }
 
+type HeadersMessage struct {
+	blocks []*Block
+}
+
 func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
   return &GetHeadersMessage{
     version: 70015,
@@ -152,6 +159,10 @@ func NewNetworkMessage(testnet bool) *NetworkMessage {
 		[12]byte{},
 		nil,
 	}
+}
+
+func NewHeadersMessage() *HeadersMessage {
+	return &HeadersMessage{make([]*Block, 0)}
 }
 
 func (nm *NetworkMessage) EqCommand(m Message) bool {
@@ -392,4 +403,48 @@ func (m *GetHeadersMessage) Parse(stream []byte) (Message, error) {
   m.startBlock = hex.EncodeToString(start)
   m.endBlock = hex.EncodeToString(end)
   return m, nil
+}
+
+func (m *HeadersMessage) Serialize() []byte {
+	buf := binary.AppendUvarint(nil, uint64(len(m.blocks)))
+	for _, block := range m.blocks {
+		buf = append(buf, block.Serialize()...)
+		buf = append(buf, 0) //Append number of transactions
+	}
+	return buf
+}
+
+func (m *HeadersMessage) Command() [12]byte {
+	return HEADERS_COMMAND
+}
+
+func (m *HeadersMessage) Parse(stream []byte) (Message, error) {
+	total, read := binary.Uvarint(stream)
+	stream = stream[read:]
+	m.blocks = make([]*Block, total)
+	readStream := bytes.NewReader(stream)
+	for i := range total {
+		block := NewBlock()
+		err := block.Parse(readStream)
+		if err != nil {
+			return nil, err
+		}
+		read, err := readStream.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		if read != 0 {
+			return nil, fmt.Errorf("Read total transactions != 0 (%d)", read)
+		}
+		m.blocks[i] = block
+	}
+	return m, nil
+}
+
+func (m *HeadersMessage) TotalBlocks() int {
+	return len(m.blocks)
+}
+
+func (m *HeadersMessage) GetBlock(i int) *Block {
+	return m.blocks[i]
 }
