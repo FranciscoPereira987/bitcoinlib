@@ -11,6 +11,11 @@ import (
 
 const BLOCK_SIZE = 80
 
+
+const GENESIS_BLOCK = "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c"
+const TESTNET_GENESIS_BLOCK = "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae18"
+
+
 type Block struct {
 	version uint32
 	prevBlock string
@@ -136,6 +141,10 @@ func (b *Block) Difficulty() Int {
   genesis := BitsToTarget(0x1d00ffff) 
    
   return genesis.Div(b.BitsToTarget()) 
+}
+
+func (b *Block) Timestamp() uint32 {
+	return b.timestamp
 }
 
 func (b *Block) CheckPOW() bool {

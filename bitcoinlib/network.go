@@ -198,8 +198,13 @@ func readPayload(from io.Reader) (checksum uint32, payload []byte, err error) {
 	}
 	buf = make([]byte, 4+binary.LittleEndian.Uint32(buf))
 	total, err = from.Read(buf)
-	if err != nil || total < len(buf) {
-		err = errors.Join(err, errors.New("payload invalid read"))
+	actual := total
+	for total != 0 && err == nil && actual < len(buf)-1{
+		total, err = from.Read(buf[actual:])
+		actual += total
+	}
+	if err != nil || actual < len(buf)-1 {
+		err = errors.Join(err, fmt.Errorf("payload invalid read: %d vs %d", total, len(buf)))
 	}
 	checksum = binary.BigEndian.Uint32(buf)
 	buf = buf[4:]
@@ -419,7 +424,8 @@ func (m *HeadersMessage) Command() [12]byte {
 }
 
 func (m *HeadersMessage) Parse(stream []byte) (Message, error) {
-	total, read := binary.Uvarint(stream)
+	_, read := binary.Varint(stream)
+	total := ReadVarInt(bytes.NewReader(stream[:read]))
 	stream = stream[read:]
 	m.blocks = make([]*Block, total)
 	readStream := bytes.NewReader(stream)
