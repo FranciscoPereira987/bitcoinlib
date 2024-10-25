@@ -23,6 +23,7 @@ type Block struct {
 	timestamp uint32
 	blockBits uint32
 	nonce uint32
+  hashes [][]byte
 }
 
 func BitsToTarget(bits uint32) Int {
@@ -168,4 +169,19 @@ func (b *Block) GetNextTarget(b2 *Block) uint32 {
   slices.Reverse(coefficient)
   bits := append(coefficient, byte(exponent))
   return binary.LittleEndian.Uint32(bits)
+}
+
+func (b *Block) ValidateMerkleRoot(leaves [][]byte) bool {
+  if leaves != nil {
+    b.hashes = leaves
+  }
+  if b.hashes == nil {
+    return false
+  }
+  leaves = copyAndReverseLeaves(b.hashes)
+  root := MerkleRoot(leaves)
+  slices.Reverse(root)
+  rootHex := hex.EncodeToString(root)
+  return rootHex == b.merkleRoot
+
 }

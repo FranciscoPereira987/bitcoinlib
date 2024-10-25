@@ -1,8 +1,37 @@
 package bitcoinlib
 
-import "slices"
+import (
+	"slices"
+)
 
 
+
+type MerkleTree struct {
+  levels [][][]byte
+  currentDepth int
+  currentIndex int
+  total int
+}
+
+func NewMerkleTree(total int) *MerkleTree {
+  levels := make([][][]byte, 0)
+  actual := total
+  for actual > 1 {
+    levels = append(levels, make([][]byte, actual))
+    if actual % 2 == 1 {
+      actual++
+    }
+    actual /= 2
+  }
+  levels = append(levels, make([][]byte, 1))
+  slices.Reverse(levels)
+  return &MerkleTree{
+    levels,
+    0,
+    0,
+    total,
+  }
+}
 
 func MerkleParent(a, b []byte) []byte {
   return Hash256(append(a, b...)) 
