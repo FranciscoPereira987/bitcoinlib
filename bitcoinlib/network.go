@@ -21,6 +21,7 @@ const PING = "ping"
 const PONG = "pong"
 const HEADERS = "headers"
 const GETHEADERS = "getheaders"
+const MERKLEBLOCK = "merkleblock"
 
 var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
 
@@ -30,12 +31,12 @@ var PING_COMMAND = IntoCommand(PING)
 var PONG_COMMAND = IntoCommand(PONG)
 var GETHEADERS_COMMAND = IntoCommand(GETHEADERS)
 var HEADERS_COMMAND = IntoCommand(HEADERS)
+var MERKLEBLOCK_COMMAND = IntoCommand(MERKLEBLOCK)
 
 var VERSION_MESSAGE = NewVersionMessage()
 var VERACK_MESSAGE = NewVerackMessage()
 var PONG_MESSAGE = NewPongMessage(0)
 var PING_MESSAGE = NewPingMessage(0)
-
 
 func IPAddressFromString(add string) [16]byte {
 	converted, _ := hex.DecodeString(add)
@@ -96,25 +97,30 @@ type PongMessage struct {
 }
 
 type GetHeadersMessage struct {
-  version uint32
-  hashes  uint8
-  startBlock string
-  endBlock   string
+	version    uint32
+	hashes     uint8
+	startBlock string
+	endBlock   string
 }
 
 type HeadersMessage struct {
 	blocks []*Block
 }
 
-func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
-  return &GetHeadersMessage{
-    version: 70015,
-    hashes: 1,
-    startBlock: startBlock,
-    endBlock: endBlock,
-  }
+type MerkleBlockMessage struct {
+	blocks            *Block
+	flagBits          uint32
+	totalTransactions uint32
 }
 
+func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
+	return &GetHeadersMessage{
+		version:    70015,
+		hashes:     1,
+		startBlock: startBlock,
+		endBlock:   endBlock,
+	}
+}
 
 func NewPingMessage(nonce uint64) *PingMessage {
 	return &PingMessage{nonce}
@@ -150,7 +156,7 @@ func NewVersionMessage() *VersionMessage {
 func NewNetworkMessage(testnet bool) *NetworkMessage {
 	var magic uint32
 	if testnet {
-		magic = TESTNET_MAGIC 
+		magic = TESTNET_MAGIC
 	} else {
 		magic = MAINNET_MAGIC
 	}
@@ -165,6 +171,10 @@ func NewHeadersMessage() *HeadersMessage {
 	return &HeadersMessage{make([]*Block, 0)}
 }
 
+func NewMerkleBlockMessage() *MerkleBlockMessage {
+	return &MerkleBlockMessage{}
+}
+
 func (nm *NetworkMessage) EqCommand(m Message) bool {
 	other := m.Command()
 	return string(nm.command[:]) == string(other[:])
@@ -174,7 +184,7 @@ func readMagic(from io.Reader) (magic uint32, err error) {
 	buf := make([]byte, 4)
 	total, err := from.Read(buf)
 	if err != nil || total < len(buf) {
-    err = errors.Join(err, errors.New("invalid magic read"))
+		err = errors.Join(err, errors.New("invalid magic read"))
 	} else {
 		magic = binary.BigEndian.Uint32(buf)
 	}
@@ -199,7 +209,7 @@ func readPayload(from io.Reader) (checksum uint32, payload []byte, err error) {
 	buf = make([]byte, 4+binary.LittleEndian.Uint32(buf))
 	total, err = from.Read(buf)
 	actual := total
-	for total != 0 && err == nil && actual < len(buf)-1{
+	for total != 0 && err == nil && actual < len(buf)-1 {
 		total, err = from.Read(buf[actual:])
 		actual += total
 	}
@@ -299,7 +309,7 @@ func (m *VerackMessage) Command() [12]byte {
 }
 
 func (m *VersionMessage) Parse(stream []byte) (Message, error) {
-  m.Protocol = binary.LittleEndian.Uint32(stream)
+	m.Protocol = binary.LittleEndian.Uint32(stream)
 	stream = stream[4:]
 	m.Services = binary.LittleEndian.Uint64(stream)
 	stream = stream[8:]
@@ -319,7 +329,7 @@ func (m *VersionMessage) Parse(stream []byte) (Message, error) {
 	stream = stream[2:]
 	m.Nonce = binary.LittleEndian.Uint64(stream)
 	stream = stream[8:]
-	userAgentLength, total := binary.Varint(stream) 
+	userAgentLength, total := binary.Varint(stream)
 	stream = stream[total:]
 	m.UserAgent = string(stream[:userAgentLength])
 	stream = stream[userAgentLength:]
@@ -369,45 +379,45 @@ func (m *PingMessage) Parse(stream []byte) (Message, error) {
 }
 
 func (m *GetHeadersMessage) Serialize() []byte {
-  buf := binary.LittleEndian.AppendUint32(nil, m.version)
-  buf = append(buf, m.hashes)
-  start, err := hex.DecodeString(m.startBlock)
-  if err != nil || len(start) != 32 {
-    panic(fmt.Sprintf("Error: %s with length %d", err, len(start)))
-  }
-  end, err := hex.DecodeString(m.endBlock)
-  if err != nil {
-    panic(fmt.Sprintf("Error: %s", err))
-  }
-  if len(end) != 32 {
-    end = make([]byte, 32)
-  }
-  //Need to use start and end as little endian
-  slices.Reverse(start)
-  slices.Reverse(end)
-  buf = append(buf, start...)
-  return append(buf, end...)
+	buf := binary.LittleEndian.AppendUint32(nil, m.version)
+	buf = append(buf, m.hashes)
+	start, err := hex.DecodeString(m.startBlock)
+	if err != nil || len(start) != 32 {
+		panic(fmt.Sprintf("Error: %s with length %d", err, len(start)))
+	}
+	end, err := hex.DecodeString(m.endBlock)
+	if err != nil {
+		panic(fmt.Sprintf("Error: %s", err))
+	}
+	if len(end) != 32 {
+		end = make([]byte, 32)
+	}
+	//Need to use start and end as little endian
+	slices.Reverse(start)
+	slices.Reverse(end)
+	buf = append(buf, start...)
+	return append(buf, end...)
 }
 
 func (m *GetHeadersMessage) Command() [12]byte {
-  return GETHEADERS_COMMAND
+	return GETHEADERS_COMMAND
 }
 
 func (m *GetHeadersMessage) Parse(stream []byte) (Message, error) {
-  m.version = binary.LittleEndian.Uint32(stream)
-  stream = stream[4:]
-  m.hashes = stream[0]
-  stream = stream[1:]
-  if len(stream) != 64 {
-    return nil, fmt.Errorf("invalid stream length for blocks id, expected 64, but got %d", len(stream))
-  }
-  start := stream[:32]
-  slices.Reverse(start)
-  end := stream[32:]
-  slices.Reverse(end)
-  m.startBlock = hex.EncodeToString(start)
-  m.endBlock = hex.EncodeToString(end)
-  return m, nil
+	m.version = binary.LittleEndian.Uint32(stream)
+	stream = stream[4:]
+	m.hashes = stream[0]
+	stream = stream[1:]
+	if len(stream) != 64 {
+		return nil, fmt.Errorf("invalid stream length for blocks id, expected 64, but got %d", len(stream))
+	}
+	start := stream[:32]
+	slices.Reverse(start)
+	end := stream[32:]
+	slices.Reverse(end)
+	m.startBlock = hex.EncodeToString(start)
+	m.endBlock = hex.EncodeToString(end)
+	return m, nil
 }
 
 func (m *HeadersMessage) Serialize() []byte {
@@ -453,4 +463,49 @@ func (m *HeadersMessage) TotalBlocks() int {
 
 func (m *HeadersMessage) GetBlock(i int) *Block {
 	return m.blocks[i]
+}
+
+func (m *MerkleBlockMessage) Command() [12]byte {
+	return MERKLEBLOCK_COMMAND
+}
+
+func (m *MerkleBlockMessage) Serialize() []byte {
+	if m.blocks == nil {
+		return []byte{}
+	}
+	buf := m.blocks.Serialize()
+	buf = binary.BigEndian.AppendUint32(buf, m.flagBits)
+	return buf
+}
+
+func (m *MerkleBlockMessage) Parse(stream []byte) (Message, error) {
+	if m.blocks == nil {
+		m.blocks = NewBlock()
+	}
+	buf := bytes.NewBuffer(stream)
+	if err := m.blocks.Parse(buf); err != nil {
+		return nil, err
+	}
+	transactions := make([]byte, 4)
+	if _, err := buf.Read(transactions); err != nil {
+		return nil, err
+	}
+	m.totalTransactions = binary.LittleEndian.Uint32(transactions)
+	hashes := ReadVarInt(buf)
+	hashesBuf := make([][]byte, hashes)
+	for i := range hashes {
+		helper := make([]byte, 32)
+		if _, err := buf.Read(helper); err != nil {
+			fmt.Printf("Going out through here: %d from %d\n", i, hashes)
+			return nil, err
+		}
+		hashesBuf[i] = helper
+	}
+	m.blocks.hashes = hashesBuf
+	flags := make([]byte, 4)
+	if _, err := buf.Read(flags); err != nil {
+		return nil, err
+	}
+	m.flagBits = binary.BigEndian.Uint32(flags)
+	return m, nil
 }
