@@ -38,7 +38,6 @@ type Int struct {
 func (i Int) String() string {
 	representation := make([]byte, 32)
 	return hex.EncodeToString(i.value.FillBytes(representation))
-
 }
 
 func FromInt(value int) Int {
@@ -142,7 +141,7 @@ func (i Int) Mod(other Int) Int {
 }
 
 func (i Int) Exp(other Int, mod Int) Int {
-  return Int{
+	return Int{
 		value: big.NewInt(0).Exp(i.value, other.value, mod.value),
 	}
 }
