@@ -183,3 +183,19 @@ func (b *Block) ValidateMerkleRoot(leaves [][]byte) bool {
 	return rootHex == b.merkleRoot
 
 }
+
+func (b *Block) SerializeHashes() []byte {
+	buf := make([]byte, 0)
+	if b.hashes == nil {
+		return buf
+	}
+	totalHashes := EncodeVarInt(uint64(len(b.hashes)))
+	flattenedHashes := make([]byte, 32*len(b.hashes))
+	for i := range len(b.hashes) {
+		left := i * 32
+		copy(flattenedHashes[left:left+32], b.hashes[i])
+	}
+	buf = append(buf, totalHashes...)
+	buf = append(buf, flattenedHashes...)
+	return buf
+}

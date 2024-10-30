@@ -115,6 +115,28 @@ func (m *MerkleTree) RightExists() bool {
 	return !m.IsLeaf() && len(m.levels[m.currentDepth+1])-1 > 2*m.currentIndex
 }
 
+func (m *MerkleTree) populateTree(flags []bool, hashes [][]byte) {
+	//Start by positioning myself on the root
+	m.currentDepth = 0
+	m.currentIndex = 0
+	for _, hash := range hashes {
+		for i, flag := range flags {
+			if !flag || m.IsLeaf() {
+				m.SetCurrentNode(hash)
+				flags = flags[i+1:]
+				m.Up()
+				for m.GetCurrentNode() != nil && m.currentDepth != 0 {
+					m.Up()
+				}
+				m.SetCurrentNode([]byte{})
+				m.Right()
+				break
+			}
+			m.Left()
+		}
+	}
+}
+
 func MerkleParent(a, b []byte) []byte {
 	return Hash256(append(a, b...))
 }

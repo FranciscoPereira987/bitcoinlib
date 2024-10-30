@@ -109,7 +109,7 @@ type HeadersMessage struct {
 
 type MerkleBlockMessage struct {
 	blocks            *Block
-	flagBits          uint32
+	flagBits          []byte
 	totalTransactions uint32
 }
 
@@ -474,7 +474,11 @@ func (m *MerkleBlockMessage) Serialize() []byte {
 		return []byte{}
 	}
 	buf := m.blocks.Serialize()
-	buf = binary.BigEndian.AppendUint32(buf, m.flagBits)
+	buf = binary.LittleEndian.AppendUint32(buf, m.totalTransactions)
+	buf = append(buf, m.blocks.SerializeHashes()...)
+	totalBits := len(m.flagBits)
+	buf = append(buf, binary.LittleEndian.AppendUint16(nil, uint16(totalBits))[0])
+	buf = append(buf, m.flagBits...)
 	return buf
 }
 
@@ -502,10 +506,30 @@ func (m *MerkleBlockMessage) Parse(stream []byte) (Message, error) {
 		hashesBuf[i] = helper
 	}
 	m.blocks.hashes = hashesBuf
-	flags := make([]byte, 4)
-	if _, err := buf.Read(flags); err != nil {
+	totalBytes := []byte{0}
+	if _, err := buf.Read(totalBytes); err != nil {
 		return nil, err
 	}
-	m.flagBits = binary.BigEndian.Uint32(flags)
+	flagBytes := make([]byte, totalBytes[0])
+	if _, err := buf.Read(flagBytes); err != nil {
+		return nil, err
+	}
+	m.flagBits = flagBytes
 	return m, nil
+}
+
+func (m *MerkleBlockMessage) FlagsToBits() []bool {
+	flags := make([]bool, 0)
+	for _, byte := range m.flagBits {
+		for _ = range 8 {
+			flags = append(flags, byte&1 == 1)
+			byte = byte >> 1
+		}
+	}
+	return flags
+}
+
+func (m *MerkleBlockMessage) GetTree() *MerkleTree {
+	tree := NewMerkleTree(int(m.totalTransactions))
+	return tree
 }
