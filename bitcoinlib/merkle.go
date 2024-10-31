@@ -127,6 +127,9 @@ func (m *MerkleTree) populateTree(flags []bool, hashes [][]byte) {
 				m.Up()
 				for m.GetCurrentNode() != nil && m.currentDepth != 0 {
 					m.Up()
+					if left, right := m.GetChildren(); len(left) == 32 && len(right) == 32 {
+						m.SetCurrentNode(MerkleParent(left, right))
+					}
 				}
 				m.SetCurrentNode([]byte{})
 				m.Right()
