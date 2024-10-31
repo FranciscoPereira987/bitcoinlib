@@ -529,7 +529,7 @@ func (m *MerkleBlockMessage) FlagsToBits() []bool {
 	return flags
 }
 
-func (m *MerkleBlockMessage) GetTree() *MerkleTree {
-	tree := NewMerkleTree(int(m.totalTransactions))
-	return tree
+func (m *MerkleBlockMessage) ValidateTree() bool {
+	flags := m.FlagsToBits()
+	return m.blocks.ValidateMerkle(flags, int(m.totalTransactions))
 }

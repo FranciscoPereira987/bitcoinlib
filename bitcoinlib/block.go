@@ -199,3 +199,11 @@ func (b *Block) SerializeHashes() []byte {
 	buf = append(buf, flattenedHashes...)
 	return buf
 }
+
+func (b *Block) ValidateMerkle(flags []bool, total int) bool {
+	tree := NewMerkleTree(total)
+	tree.PopulateTree(flags, b.hashes)
+	root := tree.Root()
+	slices.Reverse(root)
+	return hex.EncodeToString(root) == b.merkleRoot
+}
