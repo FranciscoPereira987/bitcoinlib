@@ -137,14 +137,7 @@ func TestMerkleTree1(t *testing.T) {
 	}
 }
 
-/*
-    def test_populate_tree_2(self):
-        tree = MerkleTree(len(hex_hashes))
-        hashes = [bytes.fromhex(h) for h in hex_hashes]
-        tree.populate_tree([1] * 11, hashes)
-        root = ''
-        self.assertEqual(tree.root().hex(), root)
-*/
+
 func TestMerklePopulate2(t *testing.T) {
 	hexHashes := []string{
 		"42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e",
@@ -164,6 +157,8 @@ func TestMerklePopulate2(t *testing.T) {
 	for _ = range 11 {
 		flags = append(flags, true)
 	}
+	flags[10] = false
+	flags[3] = false
 	tree.PopulateTree(flags, hashes)
 	if expectedRoot != hex.EncodeToString(tree.Root()) {
 		t.Fatalf("Failed filling tree: %s vs %s", expectedRoot, hex.EncodeToString(tree.Root()))

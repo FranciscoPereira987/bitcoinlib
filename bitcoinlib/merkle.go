@@ -136,6 +136,7 @@ func (m *MerkleTree) PopulateTree(flags []bool, hashes [][]byte) {
 				break
 			}
 			if !m.RightExists(){
+				//Need to set it because it counts as having traversed the node
 				m.SetCurrentNode([]byte{})
 			}
 			m.Left()
