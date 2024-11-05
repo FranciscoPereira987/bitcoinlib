@@ -6,11 +6,26 @@ import (
 )
 
 func TestBloomGeneration(t *testing.T) {
-	expected := "c000"
+	expected := "0300"
 	filter := bitcoinlib.NewBloomFilter(10)
 	filter.Set160([]byte("hello world"))
 	filter.Set160([]byte("goodbye"))
 	if filter.String() != expected {
 		t.Fatalf("Expected filter to be %s but got %s", expected, filter)
+	}
+}
+
+
+func TestBloomMurmurGeneration(t *testing.T) {
+	expected := "4000600a080000010940"
+	filter := bitcoinlib.NewBloomFilter(80)
+	params := &bitcoinlib.MurmurParams{
+		FunctionCount: 5,
+		Tweak: 99,
+	}
+	filter.Set([]byte("Hello World"), params)
+	filter.Set([]byte("Goodbye!"), params)
+	if filter.String() != expected {
+		t.Fatalf("Expected filter to be %s but got %s instead", expected, filter)
 	}
 }
