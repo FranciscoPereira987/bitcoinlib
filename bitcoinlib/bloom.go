@@ -1,6 +1,7 @@
 package bitcoinlib
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 )
@@ -8,6 +9,12 @@ import (
 type BloomFilter struct {
 	bitField []byte
 	size     Int
+	params *MurmurParams
+}
+
+type MurmurParams struct {
+	FunctionCount int
+	Tweak int
 }
 
 func NewBloomFilter(size int) *BloomFilter {
@@ -18,6 +25,7 @@ func NewBloomFilter(size int) *BloomFilter {
 	return &BloomFilter{
 		make([]byte, totalBytes),
 		FromInt(size),
+		nil,
 	}
 }
 
@@ -30,7 +38,7 @@ func (bf *BloomFilter) set(total Int) {
 	byteNumber := bitNumber / 8
 	bitIndex := bitNumber % 8
 	fmt.Println(bitIndex)
-	bf.bitField[byteNumber] |= 0x80 >> bitIndex
+	bf.bitField[byteNumber] |= 0x01 << bitIndex
 }
 
 /*
@@ -41,4 +49,28 @@ func (bf *BloomFilter) Set160(stream []byte) {
 	hashed := "0x" + hex.EncodeToString(Hash160(stream))
 	total := FromHexString(hashed)
 	bf.set(total)
+}
+
+/*
+Sets the bloom filter using Murmur3 based on function Count and tweak
+*/
+func (bf *BloomFilter) Set(value []byte, params *MurmurParams) {
+	if bf.params != nil {
+		params = bf.params
+	}else {
+		bf.params = params
+	}
+	for i := range params.FunctionCount {
+		seed := Murmur3Seed(i, params.Tweak)
+		total := Murmur3(value, seed)
+		bf.set(FromInt(total))
+	}
+}
+
+func (bf *BloomFilter) FilterLoad() []byte {
+	buf := bf.bitField
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.FunctionCount))
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.Tweak))
+	buf = append(buf, 1)
+	return buf
 }
