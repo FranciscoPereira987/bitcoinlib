@@ -22,6 +22,7 @@ const PONG = "pong"
 const HEADERS = "headers"
 const GETHEADERS = "getheaders"
 const MERKLEBLOCK = "merkleblock"
+const GETDATA = "getdata"
 
 var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
 
@@ -32,11 +33,22 @@ var PONG_COMMAND = IntoCommand(PONG)
 var GETHEADERS_COMMAND = IntoCommand(GETHEADERS)
 var HEADERS_COMMAND = IntoCommand(HEADERS)
 var MERKLEBLOCK_COMMAND = IntoCommand(MERKLEBLOCK)
+var GETDATA_COMMAND = IntoCommand(GETDATA)
 
 var VERSION_MESSAGE = NewVersionMessage()
 var VERACK_MESSAGE = NewVerackMessage()
 var PONG_MESSAGE = NewPongMessage(0)
 var PING_MESSAGE = NewPingMessage(0)
+
+/*
+Get data types
+*/
+const (
+	TX_DATA_TYPE = iota + 1
+	BLOCK_DATA_TYPE
+	MERKLE_DATA_TYPE
+	COMPACT_BLOCK_DATA_TYPE
+)
 
 func IPAddressFromString(add string) [16]byte {
 	converted, _ := hex.DecodeString(add)
@@ -113,6 +125,11 @@ type MerkleBlockMessage struct {
 	totalTransactions uint32
 }
 
+type GetDataMessage struct {
+	items     [][32]byte
+	dataTypes []int
+}
+
 func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
 	return &GetHeadersMessage{
 		version:    70015,
@@ -173,6 +190,10 @@ func NewHeadersMessage() *HeadersMessage {
 
 func NewMerkleBlockMessage() *MerkleBlockMessage {
 	return &MerkleBlockMessage{}
+}
+
+func NewGetdataMessage() *GetDataMessage {
+	return &GetDataMessage{}
 }
 
 func (nm *NetworkMessage) EqCommand(m Message) bool {
@@ -532,4 +553,41 @@ func (m *MerkleBlockMessage) FlagsToBits() []bool {
 func (m *MerkleBlockMessage) ValidateTree() bool {
 	flags := m.FlagsToBits()
 	return m.blocks.ValidateMerkle(flags, int(m.totalTransactions))
+}
+
+func (m *GetDataMessage) AddData(data []byte, dataType int) {
+	slices.Reverse(data)
+	m.dataTypes = append(m.dataTypes, dataType)
+	m.items = append(m.items, [32]byte(data))
+}
+
+func (m *GetDataMessage) Command() [12]byte {
+	return GETDATA_COMMAND
+}
+
+func (m *GetDataMessage) Serialize() []byte {
+	buf := EncodeVarInt(uint64(len(m.dataTypes)))
+	for i, value := range m.dataTypes {
+		buf = binary.LittleEndian.AppendUint32(buf, uint32(value))
+		buf = append(buf, m.items[i][:]...)
+	}
+	return buf
+}
+
+func (m *GetDataMessage) Parse(stream []byte) (Message, error) {
+	bufReader := bytes.NewReader(stream)
+	totalItems := ReadVarInt(bufReader)
+	for _ = range totalItems {
+		dataType := make([]byte, 4)
+		dataHash := [32]byte{}
+		if _, err := bufReader.Read(dataType); err != nil {
+			return nil, fmt.Errorf("Error reading data type: %s", err)
+		}
+		if _, err := bufReader.Read(dataHash[:]); err != nil {
+			return nil, fmt.Errorf("Error reading hash: %s", err)
+		}
+		m.dataTypes = append(m.dataTypes, int(binary.LittleEndian.Uint32(dataType)))
+		m.items = append(m.items, dataHash)
+	}
+	return m, nil
 }
