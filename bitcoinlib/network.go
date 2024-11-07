@@ -23,6 +23,8 @@ const HEADERS = "headers"
 const GETHEADERS = "getheaders"
 const MERKLEBLOCK = "merkleblock"
 const GETDATA = "getdata"
+const TRANSACTION = "transaction"
+const FILTERLOAD = "filterload"
 
 var IPV4_BASE = [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0}
 
@@ -34,6 +36,8 @@ var GETHEADERS_COMMAND = IntoCommand(GETHEADERS)
 var HEADERS_COMMAND = IntoCommand(HEADERS)
 var MERKLEBLOCK_COMMAND = IntoCommand(MERKLEBLOCK)
 var GETDATA_COMMAND = IntoCommand(GETDATA)
+var TRANSACTION_COMMAND = IntoCommand(TRANSACTION)
+var FILTERLOAD_COMMAND = IntoCommand(FILTERLOAD)
 
 var VERSION_MESSAGE = NewVersionMessage()
 var VERACK_MESSAGE = NewVerackMessage()
@@ -130,6 +134,14 @@ type GetDataMessage struct {
 	dataTypes []int
 }
 
+type TxMessage struct {
+	Tx *Transaction
+}
+
+type FilterLoadMessage struct {
+	Filter *BloomFilter
+}
+
 func NewGetHeadersMessage(startBlock string, endBlock string) *GetHeadersMessage {
 	return &GetHeadersMessage{
 		version:    70015,
@@ -182,6 +194,11 @@ func NewNetworkMessage(testnet bool) *NetworkMessage {
 		[12]byte{},
 		nil,
 	}
+}
+
+func (nm *NetworkMessage) SetMessage(m Message) {
+	nm.command = m.Command()
+	nm.payload = m.Serialize()
 }
 
 func NewHeadersMessage() *HeadersMessage {
@@ -590,4 +607,34 @@ func (m *GetDataMessage) Parse(stream []byte) (Message, error) {
 		m.items = append(m.items, dataHash)
 	}
 	return m, nil
+}
+
+func (m *TxMessage) Command() [12]byte {
+	return TRANSACTION_COMMAND
+}
+
+func (m *TxMessage) Serialize() []byte {
+	return m.Tx.Serialize()
+}
+
+func (m *TxMessage) Parse(stream []byte) (Message, error) {
+	buf := bytes.NewReader(stream)
+	tx, err := ParseTransaction(buf)
+	if err != nil {
+		return nil, err
+	}
+	m.Tx = tx
+	return m, nil
+}
+
+func (m *FilterLoadMessage) Command() [12]byte {
+	return FILTERLOAD_COMMAND
+}
+
+func (m *FilterLoadMessage) Serialize() []byte {
+	return m.Filter.FilterLoad()
+}
+
+func (m *FilterLoadMessage) Parse(stream []byte) (Message, error) {
+	return nil, errors.New("NOT IMPLEMENTED")
 }

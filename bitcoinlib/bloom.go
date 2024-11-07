@@ -3,28 +3,24 @@ package bitcoinlib
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 )
 
 type BloomFilter struct {
 	bitField []byte
 	size     Int
-	params *MurmurParams
+	params   *MurmurParams
 }
 
 type MurmurParams struct {
 	FunctionCount int
-	Tweak int
+	Tweak         int
 }
 
 func NewBloomFilter(size int) *BloomFilter {
-	totalBytes := size / 8
-	if size%8 != 0 {
-		totalBytes++
-	}
+	totalBytes := size
 	return &BloomFilter{
 		make([]byte, totalBytes),
-		FromInt(size),
+		FromInt(size * 8),
 		nil,
 	}
 }
@@ -37,7 +33,6 @@ func (bf *BloomFilter) set(total Int) {
 	bitNumber := total.Mod(bf.size).value.Int64()
 	byteNumber := bitNumber / 8
 	bitIndex := bitNumber % 8
-	fmt.Println(bitIndex)
 	bf.bitField[byteNumber] |= 0x01 << bitIndex
 }
 
@@ -57,7 +52,7 @@ Sets the bloom filter using Murmur3 based on function Count and tweak
 func (bf *BloomFilter) Set(value []byte, params *MurmurParams) {
 	if bf.params != nil {
 		params = bf.params
-	}else {
+	} else {
 		bf.params = params
 	}
 	for i := range params.FunctionCount {
@@ -68,7 +63,8 @@ func (bf *BloomFilter) Set(value []byte, params *MurmurParams) {
 }
 
 func (bf *BloomFilter) FilterLoad() []byte {
-	buf := bf.bitField
+	buf := EncodeVarInt(bf.size.value.Uint64() / 8)
+	buf = append(buf, bf.bitField...)
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.FunctionCount))
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.Tweak))
 	buf = append(buf, 1)

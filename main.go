@@ -35,10 +35,10 @@ func nodeMain() {
 		Testnet: true,
 	}
 	node := bitcoinlib.NewSimpleNode(params)
-  err := node.Handshake()
-  if err != nil {
-    fmt.Println("Error: ", err)
-  }
+	err := node.Handshake()
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }
 
 func nodeHeaders() {
@@ -55,7 +55,7 @@ func nodeHeaders() {
 		fmt.Printf("Error during handshake: %s\n", err)
 		return
 	}
-	node.Send(bitcoinlib.NewGetHeadersMessage(block.Hash(),""))
+	node.Send(bitcoinlib.NewGetHeadersMessage(block.Hash(), ""))
 	maped := map[string]bitcoinlib.Message{
 		bitcoinlib.HEADERS: bitcoinlib.NewHeadersMessage(),
 	}
@@ -70,12 +70,12 @@ func nodeHeaders() {
 		if !block.CheckPOW() {
 			fmt.Printf("Failed checking block %d POW\n", i)
 		}
-		if i % 2016 == 0 {
+		if i%2016 == 0 {
 			fmt.Printf("Difficulty: %s\n", block.Difficulty())
 		}
 		if i == headers.TotalBlocks()-1 {
 			fmt.Println("Asking for more")
-			node.Send(bitcoinlib.NewGetHeadersMessage(block.Hash(),""))
+			node.Send(bitcoinlib.NewGetHeadersMessage(block.Hash(), ""))
 			result, err := node.WaitFor(maped)
 			if err != nil {
 				fmt.Printf("Error waiting for headers message: %s\n", err)
@@ -87,10 +87,41 @@ func nodeHeaders() {
 		}
 		i++
 	}
-	
 
 }
 
+func TransactionOfInterestMain() {
+	startBlock := "00000000000538d5c2246336644f9a4956551afb44ba47278759ec55ea912e19"
+	address := "mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv"
+	params := bitcoinlib.NodeParams{
+		Addr:    "testnet-seed.bitcoin.jonasschnelli.ch",
+		Testnet: true,
+		Logging: true,
+	}
+	node := bitcoinlib.NewSimpleNode(params)
+	if err := node.Handshake(); err != nil {
+		fmt.Printf("Failed handshake: %s", err)
+		return
+	}
+	h160 := bitcoinlib.FromBase58Address(address)
+	h160Hex, _ := hex.DecodeString(h160)
+	filter := bitcoinlib.NewBloomFilter(30)
+	filterParams := &bitcoinlib.MurmurParams{
+		FunctionCount: 5,
+		Tweak:         90210,
+	}
+	filter.Set(h160Hex, filterParams)
+	headers := bitcoinlib.NewGetHeadersMessage(startBlock, "")
+	node.Send(headers)
+	_, err := node.WaitFor(map[string]bitcoinlib.Message{bitcoinlib.HEADERS: bitcoinlib.NewHeadersMessage()})
+	if err != nil {
+		fmt.Printf("Failed recovering headers message: %s", err)
+		return
+	}
+	node.Send(&bitcoinlib.FilterLoadMessage{Filter: filter})
+	node.WaitFor(map[string]bitcoinlib.Message{bitcoinlib.PING: bitcoinlib.PING_MESSAGE})
+}
+
 func main() {
-	nodeHeaders()
+	TransactionOfInterestMain()
 }

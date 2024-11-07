@@ -122,3 +122,30 @@ func TestGetDataMessage(t *testing.T) {
 		t.Fatalf("Failed serializing made up get data message: %s != %s", serialized, hexMsg)
 	}
 }
+
+/*
+def test_filterload(self):
+
+	bf = BloomFilter(10, 5, 99)
+	item = b'Hello World'
+	bf.add(item)
+	item = b'Goodbye!'
+	bf.add(item)
+	expected = '0a4000600a080000010940050000006300000001'
+	self.assertEqual(bf.filterload().serialize().hex(), expected)
+*/
+func TestFilterLoadMessage(t *testing.T) {
+	filter := bitcoinlib.NewBloomFilter(10)
+	params := &bitcoinlib.MurmurParams{
+		FunctionCount: 5,
+		Tweak:         99,
+	}
+	filter.Set([]byte("Hello World"), params)
+	filter.Set([]byte("Goodbye!"), params)
+	expected := "0a4000600a080000010940050000006300000001"
+	message := &bitcoinlib.FilterLoadMessage{Filter: filter}
+	encoded := hex.EncodeToString(message.Serialize())
+	if encoded != expected {
+		t.Fatalf("Expected: %s but got: %s", expected, encoded)
+	}
+}
