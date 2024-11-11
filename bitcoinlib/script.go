@@ -44,8 +44,9 @@ func NewScriptVal(val []byte) *ScriptVal {
 }
 
 type CombinedScript struct {
-	cmds   []Operation
-	isP2SH bool
+	cmds     []Operation
+	isP2SH   bool
+	isP2WPKH bool
 }
 
 func NewScript(cmds []Operation) *Script {
@@ -71,8 +72,30 @@ func P2SHPubKey(hash []byte) *ScriptPubKey {
 	}
 }
 
+func P2WPKHPubKey(hash []byte) *ScriptPubKey {
+	return &ScriptPubKey{
+		[]Operation{
+			&ScriptVal{hash},
+			&OP_0{},
+		},
+	}
+}
+
 func (s *ScriptPubKey) isP2SH() bool {
 	commands := P2SHPubKey([]byte{}).cmds
+	if len(commands) != len(s.cmds) {
+		return false
+	}
+	for index, cmd := range commands {
+		if cmd.Num() != s.cmds[index].Num() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *ScriptPubKey) isP2WPKH() bool {
+	commands := P2WPKHPubKey([]byte{}).cmds
 	if len(commands) != len(s.cmds) {
 		return false
 	}
@@ -93,6 +116,7 @@ func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
 	return &CombinedScript{
 		cmds,
 		t.isP2SH(),
+		t.isP2WPKH(),
 	}
 }
 
@@ -103,12 +127,13 @@ func (t *CombinedScript) EvaluateScriptHash() bool {
 	helperScript := &CombinedScript{
 		t.cmds[:4],
 		false,
+		false,
 	}
-	return helperScript.Evaluate(z)
+	return helperScript.Evaluate(z, nil)
 }
 
 // Evaluates a Redeem Script (need to parse it and then create the correct script to evaluate)
-func (t *CombinedScript) EvaluateRedeemScript(z string) bool {
+func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte) bool {
 	script := t.cmds[len(t.cmds)-4].(*ScriptVal)
 	pubKeyScript, err := parseScriptFromBytes(script.Val)
 	if err != nil {
@@ -117,13 +142,19 @@ func (t *CombinedScript) EvaluateRedeemScript(z string) bool {
 	pubKey := NewPubkey(pubKeyScript)
 	privKey := NewScript(t.cmds[4:])
 	slices.Reverse(privKey.cmds)
-	return pubKey.Combine(*privKey).Evaluate(z)
+	return pubKey.Combine(*privKey).Evaluate(z, witness)
 }
 
-func (t *CombinedScript) Evaluate(z string) bool {
+func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 	if t.isP2SH {
 		//Evaluate P2SH
-		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z)
+		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness)
+	}
+	var witnesses []byte
+	if witness != nil {
+		for _, item := range witness {
+			witnesses = append(witnesses, item...)
+		}
 	}
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)
@@ -133,6 +164,14 @@ func (t *CombinedScript) Evaluate(z string) bool {
 		cmd := Pop(&cmds)
 		if !cmd.Operate(z, &stack, &altstack, &cmds) {
 			return false
+		}
+		if len(stack) == 2 && t.isP2WPKH {
+			witnessScript, _ := parseScriptFromBytes(witnesses)
+			h160 := Pop(&stack)
+			for _, op := range witnessScript {
+				Push(&cmds, op)
+			}
+			Push(&cmds, h160)
 		}
 	}
 	if len(stack) == 0 {
@@ -218,7 +257,7 @@ func parseScriptFromBytes(buf []byte) ([]Operation, error) {
 			if op == nil {
 				fmt.Printf("Adding undefined operation: %d\n", int(current))
 				cmds = append(cmds, &UNDEFINED{int(current)})
-			}else {
+			} else {
 				cmds = append(cmds, op)
 			}
 		}
@@ -255,7 +294,6 @@ func (t *ScriptPubKey) Serialize() []byte {
 	length := EncodeVarInt(uint64(len(val)))
 	return append(length, val...)
 }
-
 
 func (t *Script) Height() uint64 {
 	if val, ok := t.cmds[0].(*ScriptVal); ok {

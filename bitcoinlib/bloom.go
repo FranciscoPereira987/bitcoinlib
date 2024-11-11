@@ -63,7 +63,7 @@ func (bf *BloomFilter) Set(value []byte, params *MurmurParams) {
 }
 
 func (bf *BloomFilter) FilterLoad() []byte {
-	buf := EncodeVarInt(bf.size.value.Uint64() / 8)
+	buf := binary.AppendUvarint(nil, bf.size.value.Uint64()/8)
 	buf = append(buf, bf.bitField...)
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.FunctionCount))
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(bf.params.Tweak))

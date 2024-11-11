@@ -16,6 +16,7 @@ const VERSION_SIZE = 4
 
 // Version, VarInt, Input\s, VarInt, Output\s
 type Transaction struct {
+	segwit   bool
 	version  Version
 	inputs   []*Input
 	outputs  []*Output
@@ -55,6 +56,7 @@ type Input struct {
 	previousIndex uint32
 	scriptSig     *Script
 	sequence      uint32
+	items         [][]byte
 }
 
 type Output struct {
@@ -162,6 +164,7 @@ func NewInputFrom(from io.Reader) (*Input, error) {
 		prevIndex,
 		script,
 		sequence,
+		nil,
 	}, err
 }
 
@@ -224,19 +227,21 @@ func ParseTransaction(from io.Reader) (*Transaction, error) {
 		outputArr = append(outputArr, output)
 	}
 	if segwit {
-		for _ = range inputArr {
-			value := []byte{0}
+		for i := range inputArr {
+			value := make([]byte, 1)
 			from.Read(value)
-			items := int(value[0])
+			items := value[0]
 			for _ = range items {
 				length := ReadVarInt(from)
 				item := make([]byte, length)
 				from.Read(item)
+				inputArr[i].items = append(inputArr[i].items, item)
 			}
 		}
 	}
 	locktime, err := parseUint32(from)
 	return &Transaction{
+		segwit,
 		*version,
 		inputArr,
 		outputArr,
@@ -267,6 +272,9 @@ func (t *Version) Serialize() []byte {
 // Serializes a transaction
 func (tx *Transaction) Serialize() []byte {
 	buf := tx.version.Serialize()
+	if tx.segwit {
+		buf = append(buf, 0, 1)
+	}
 	buf = append(buf, EncodeVarInt(uint64(len(tx.inputs)))...)
 	for _, val := range tx.inputs {
 		buf = append(buf, val.Serialize()...)
@@ -274,6 +282,15 @@ func (tx *Transaction) Serialize() []byte {
 	buf = append(buf, EncodeVarInt(uint64(len(tx.outputs)))...)
 	for _, val := range tx.outputs {
 		buf = append(buf, val.Serialize()...)
+	}
+	if tx.segwit {
+		for _, input := range tx.inputs {
+			val := binary.LittleEndian.AppendUint16(nil, uint16(len(input.items)))
+			buf = fmt.Append(buf, val[0])
+			for _, item := range input.items {
+				buf = append(buf, item...)
+			}
+		}
 	}
 	return binary.LittleEndian.AppendUint32(buf, tx.locktime)
 }
@@ -338,12 +355,30 @@ func (in *Input) ReplaceScriptSig(empty bool, testnet bool, p2sh bool) []byte {
 			cmds, _ := parseScriptFromBytes(in.scriptSig.cmds[len(in.scriptSig.cmds)-1].(*ScriptVal).Val)
 			script := NewPubkey(cmds)
 			buf = append(buf, script.Serialize()...)
-		}else {
+		} else {
 			buf = append(buf, scriptPubKey.Serialize()...)
 		}
 	}
 	buf = binary.LittleEndian.AppendUint32(buf, in.sequence)
 	return buf
+}
+
+func (tx *Transaction) hashprevouts() []byte {
+	prevouts := []byte{}
+	for _, txIn := range tx.inputs {
+		prevout, _ := hex.DecodeString(txIn.previousID)
+		slices.Reverse(prevout)
+		prevouts = append(prevouts, prevout...)
+		prevouts = binary.LittleEndian.AppendUint32(prevouts, txIn.previousIndex)
+	}
+	return Hash256(prevouts)
+}
+func (tx *Transaction) hashsequence() []byte {
+	sequences := []byte{}
+	for _, txIn := range tx.inputs {
+		sequences = binary.LittleEndian.AppendUint32(sequences, txIn.sequence)
+	}
+	return Hash256(sequences)
 }
 
 func (tx *Transaction) SigHash(input int, testnet bool, p2sh bool) []byte {
@@ -362,18 +397,56 @@ func (tx *Transaction) SigHash(input int, testnet bool, p2sh bool) []byte {
 	return hashed
 }
 
+func (tx *Transaction) hashOutputs() []byte {
+	total := []byte{}
+	for _, output := range tx.outputs {
+		total = append(total, output.Serialize()...)
+	}
+	return Hash256(total)
+}
+
+func (tx *Transaction) SigHashBIP143(input int, testnet bool, p2sh bool) []byte {
+	buf := tx.version.Serialize()
+	buf = append(buf, tx.hashprevouts()...)
+	buf = append(buf, tx.hashsequence()...)
+	lastTx, _ := hex.DecodeString(tx.inputs[input].previousID)
+	buf = append(buf, lastTx...)
+	buf = binary.LittleEndian.AppendUint32(buf, tx.inputs[input].previousIndex)
+	if tx.inputs[input].items != nil && len(tx.inputs[input].items) > 0 {
+		var script []byte
+		for _, item := range tx.inputs[input].items {
+			script = append(script, item...)
+		}
+		buf = append(buf, script...)
+	} else {
+		buf = append(buf, tx.inputs[input].ReplaceScriptSig(false, testnet, p2sh)...)
+	}
+	value, _ := tx.inputs[input].Value(testnet)
+	buf = binary.LittleEndian.AppendUint64(buf, value)
+	buf = binary.LittleEndian.AppendUint32(buf, tx.inputs[input].sequence)
+	buf = append(buf, tx.hashOutputs()...)
+	buf = binary.LittleEndian.AppendUint32(buf, tx.locktime)
+	buf = append(buf, 0x01, 0x00, 0x00, 0x00) //Append SIGHASH_ALL
+	return Hash256(buf)
+}
+
 func (tx *Transaction) VerifyInput(input int, testnet bool) bool {
 	//Get the public key that goes with this input script
 	pubKey, err := tx.inputs[input].ScriptPubkey(testnet)
 	if err != nil {
 		return false
 	}
-	
+
 	//First of, get Z
-	hash := tx.SigHash(input, testnet, pubKey.isP2SH())
+	var hash []byte
+	if tx.segwit {
+		hash = tx.SigHashBIP143(input, testnet, pubKey.isP2SH())
+	} else {
+		hash = tx.SigHash(input, testnet, pubKey.isP2SH())
+	}
 	//Combine and evaluate the final Script
 	combined := pubKey.Combine(*tx.inputs[input].scriptSig)
-	return combined.Evaluate(hex.EncodeToString(hash))
+	return combined.Evaluate(hex.EncodeToString(hash), tx.inputs[input].items)
 }
 
 func (tx *Transaction) Verify(testnet bool) bool {
@@ -392,6 +465,7 @@ func (tx *Transaction) Verify(testnet bool) bool {
 
 func NewTransaction() *Transaction {
 	return &Transaction{
+		false,
 		*NewVersion(1),
 		[]*Input{},
 		[]*Output{},
@@ -419,6 +493,7 @@ func (tx *Transaction) AddInput(previousID string, previousIndex uint32) {
 		previousIndex,
 		&Script{},
 		0xffffffff,
+		nil,
 	}
 	tx.inputs = append(tx.inputs, newInput)
 }

@@ -111,6 +111,7 @@ func TransactionOfInterestMain() {
 		Tweak:         90210,
 	}
 	filter.Set(h160Hex, filterParams)
+	node.Send(&bitcoinlib.FilterLoadMessage{Filter: filter})
 	headers := bitcoinlib.NewGetHeadersMessage(startBlock, "")
 	node.Send(headers)
 	_, err := node.WaitFor(map[string]bitcoinlib.Message{bitcoinlib.HEADERS: bitcoinlib.NewHeadersMessage()})
@@ -118,7 +119,6 @@ func TransactionOfInterestMain() {
 		fmt.Printf("Failed recovering headers message: %s", err)
 		return
 	}
-	node.Send(&bitcoinlib.FilterLoadMessage{Filter: filter})
 	node.WaitFor(map[string]bitcoinlib.Message{bitcoinlib.PING: bitcoinlib.PING_MESSAGE})
 }
 
