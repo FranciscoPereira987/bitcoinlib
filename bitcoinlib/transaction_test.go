@@ -82,7 +82,7 @@ func TestScriptEvaluation(t *testing.T) {
 		t.Fatalf("Failed processing scrip sig")
 	}
 	combined := pub.Combine(*sig)
-	if !combined.Evaluate("") {
+	if !combined.Evaluate("", nil) {
 		t.Fatalf("Failed evaluating script")
 	}
 
@@ -109,7 +109,7 @@ func TestScriptEvaluationP2PK(t *testing.T) {
 	})
 
 	combined := pubKey.Combine(*scriptSig)
-	if !combined.Evaluate(z) {
+	if !combined.Evaluate(z, nil) {
 		t.Fatal("Failed evaluating Script")
 	}
 }
@@ -139,7 +139,7 @@ func TestVerifiyP2PKH(t *testing.T) {
 	if !tx.Verify(false) {
 		t.Fatal("Failed to verify Transaction")
 	}
-	
+
 	tx, err = bitcoinlib.FetchTransaction("5418099cc755cb9dd3ebc6cf1a7888ad53a1a3beb5a025bce89eb1bf7f1650a2", true, true)
 	if err != nil {
 		t.Fatal("Failed to fetch transaction 2")
@@ -168,7 +168,7 @@ func TestOP_MULTISIG(t *testing.T) {
 		bitcoinlib.NewScriptVal(sig2),
 		&bitcoinlib.OP_0{},
 	})
-	if !pubkey.Combine(*scripSig).Evaluate(z) {
+	if !pubkey.Combine(*scripSig).Evaluate(z, nil) {
 		t.Fatal("Failed evaluation of OP_CHECKMULTISIG")
 	}
 }

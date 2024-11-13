@@ -81,6 +81,15 @@ func P2WPKHPubKey(hash []byte) *ScriptPubKey {
 	}
 }
 
+func P2WSHPubKey(hash []byte) *ScriptPubKey {
+	return &ScriptPubKey{
+		[]Operation{
+			&ScriptVal{hash},
+			&OP_0{},
+		},
+	}
+}
+
 func (s *ScriptPubKey) isP2SH() bool {
 	commands := P2SHPubKey([]byte{}).cmds
 	if len(commands) != len(s.cmds) {
@@ -104,9 +113,23 @@ func (s *ScriptPubKey) isP2WPKH() bool {
 			return false
 		}
 	}
-	return true
+	isHash160, ok := s.cmds[1].(*ScriptVal)
+	return ok && len(isHash160.Val) == 20
 }
 
+func (s *ScriptPubKey) isP2WSH() bool {
+	commands := P2WSHPubKey([]byte{}).cmds
+	if len(commands) != len(s.cmds) {
+		return false
+	}
+	for index, cmd := range commands {
+		if cmd.Num() != s.cmds[index].Num() {
+			return false
+		}
+	}
+	isHash256, ok := s.cmds[1].(*ScriptVal)
+	return ok && len(isHash256.Val) == 32
+}
 func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)

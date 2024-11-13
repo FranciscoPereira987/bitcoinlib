@@ -342,12 +342,16 @@ func (tx *Transaction) Fee(testnet bool) int64 {
 // instead of the script sig
 // If empty is true, does not replace the ScripSig with the
 // previous ScriptPubKey
-func (in *Input) ReplaceScriptSig(empty bool, testnet bool, p2sh bool) []byte {
+func (in *Input) ReplaceScriptSig(empty bool, testnet bool, p2sh bool, p2wsh bool, segwit bool) []byte {
 	buf, _ := hex.DecodeString(in.previousID)
 	slices.Reverse(buf)
 	buf = binary.LittleEndian.AppendUint32(buf, in.previousIndex)
 	if empty {
 		buf = append(buf, 0x00)
+	} else if segwit && p2wsh {
+		cmds, _ := parseScriptFromBytes(in.items[len(in.items)-1])
+		pubKey := NewPubkey(cmds)
+		buf = append(buf, pubKey.Serialize()...)
 	} else {
 		pubKey, _ := FetchTransaction(in.previousID, testnet, false)
 		scriptPubKey := pubKey.outputs[in.previousIndex].scriptPubKey
@@ -385,7 +389,7 @@ func (tx *Transaction) SigHash(input int, testnet bool, p2sh bool) []byte {
 	buf := tx.version.Serialize()
 	buf = append(buf, EncodeVarInt(uint64(len(tx.inputs)))...)
 	for index, val := range tx.inputs {
-		buf = append(buf, val.ReplaceScriptSig(index != input, testnet, p2sh)...)
+		buf = append(buf, val.ReplaceScriptSig(index != input, testnet, p2sh, false, tx.segwit)...)
 	}
 	buf = append(buf, EncodeVarInt(uint64(len(tx.outputs)))...)
 	for _, val := range tx.outputs {
@@ -412,14 +416,18 @@ func (tx *Transaction) SigHashBIP143(input int, testnet bool, p2sh bool) []byte 
 	lastTx, _ := hex.DecodeString(tx.inputs[input].previousID)
 	buf = append(buf, lastTx...)
 	buf = binary.LittleEndian.AppendUint32(buf, tx.inputs[input].previousIndex)
-	if tx.inputs[input].items != nil && len(tx.inputs[input].items) > 0 {
-		var script []byte
-		for _, item := range tx.inputs[input].items {
-			script = append(script, item...)
+	if p2sh {
+		redeemScript, _ := parseScriptFromBytes(tx.inputs[input].scriptSig.cmds[len(tx.inputs[input].scriptSig.cmds)-1].(*ScriptVal).Val)
+		redeem := NewPubkey(redeemScript)
+		if redeem.isP2WSH() {
+			last := tx.inputs[input].items[len(tx.inputs[input].items)-1]
+			buf = append(buf, EncodeVarInt(uint64(len(last)))...)
+			buf = append(buf, last...)
+		} else {
+			buf = append(buf, P2WPKHPubKey(redeemScript[1].(*ScriptVal).Val).Serialize()...)
 		}
-		buf = append(buf, script...)
 	} else {
-		buf = append(buf, tx.inputs[input].ReplaceScriptSig(false, testnet, p2sh)...)
+		buf = append(buf, tx.inputs[input].ReplaceScriptSig(false, testnet, p2sh, false, tx.segwit)...)
 	}
 	value, _ := tx.inputs[input].Value(testnet)
 	buf = binary.LittleEndian.AppendUint64(buf, value)
