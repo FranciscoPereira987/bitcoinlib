@@ -96,7 +96,7 @@ func FetchTransaction(tx_id string, testnet bool, fresh bool) (*Transaction, err
 }
 
 func (tx *Transaction) Id() string {
-	hashed := Hash256(tx.Serialize())
+	hashed := Hash256(tx.serializeLegacy())
 	slices.Reverse(hashed)
 	return hex.EncodeToString(hashed)
 }
@@ -269,6 +269,19 @@ func (t *Version) Serialize() []byte {
 	return binary.LittleEndian.AppendUint32(nil, t.number)
 }
 
+func (tx *Transaction) serializeLegacy() []byte {
+	buf := tx.version.Serialize()
+	buf = append(buf, EncodeVarInt(uint64(len(tx.inputs)))...)
+	for _, val := range tx.inputs {
+		buf = append(buf, val.Serialize()...)
+	}
+	buf = append(buf, EncodeVarInt(uint64(len(tx.outputs)))...)
+	for _, val := range tx.outputs {
+		buf = append(buf, val.Serialize()...)
+	}
+	return binary.LittleEndian.AppendUint32(buf, tx.locktime)
+}
+
 // Serializes a transaction
 func (tx *Transaction) Serialize() []byte {
 	buf := tx.version.Serialize()
@@ -285,10 +298,13 @@ func (tx *Transaction) Serialize() []byte {
 	}
 	if tx.segwit {
 		for _, input := range tx.inputs {
-			val := binary.LittleEndian.AppendUint16(nil, uint16(len(input.items)))
-			buf = fmt.Append(buf, val[0])
+			buf = append(buf, EncodeVarInt(uint64(len(input.items)))...)
 			for _, item := range input.items {
-				buf = append(buf, item...)
+				value := EncodeVarInt(uint64(len(item)))
+				buf = append(buf, value...)
+				if string(value) != string(item) {
+					buf = append(buf, item...)
+				}
 			}
 		}
 	}
