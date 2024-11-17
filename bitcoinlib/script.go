@@ -156,8 +156,15 @@ func (t *CombinedScript) EvaluateScriptHash() bool {
 }
 
 // Evaluates a Redeem Script (need to parse it and then create the correct script to evaluate)
-func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte) bool {
-	fmt.Printf("%s\n%d\n", t.cmds, len(t.cmds))
+func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte, witnesses []byte) bool {
+	if witness != nil {
+		parsed, err := parseScriptFromBytes(witnesses)
+		if err != nil {
+			return false
+		}
+		fmt.Printf("%s\n%s\n", parsed, t.cmds)
+		return false
+	}
 	script := t.cmds[len(t.cmds)-4].(*ScriptVal)
 	pubKeyScript, err := parseScriptFromBytes(script.Val)
 	if err != nil {
@@ -170,10 +177,6 @@ func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte) bool {
 }
 
 func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
-	if t.isP2SH {
-		//Evaluate P2SH
-		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness)
-	}
 	var witnesses []byte
 	if witness != nil {
 		for _, item := range witness {
@@ -184,6 +187,11 @@ func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 			}
 		}
 	}
+	if t.isP2SH {
+		//Evaluate P2SH
+		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness, witnesses)
+	}
+
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)
 	stack := make([]Operation, 0)
@@ -199,17 +207,26 @@ func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 				fmt.Println(err)
 			}
 			h160 := Pop(&stack)
-			for _, op := range witnessScript {
-				Push(&cmds, op)
+
+			p2wpkh := []Operation{
+				&OP_DUP{},
+				&OP_HASH160{},
+				h160,
+				&OP_EQUALVERIFY{},
+				&OP_CHECKSIG{},
 			}
-			p2wpkh := P2WPKHPubKey(h160.(*ScriptVal).Val)
-			for _, op := range p2wpkh.cmds {
-				Push(&cmds, op)
+
+			for len(p2wpkh) > 0 {
+				Push(&cmds, Pop(&p2wpkh))
 			}
-			fmt.Printf("%s\n", cmds)
+			for len(witnessScript) > 0 {
+				Push(&cmds, Pop(&witnessScript))
+			}
 			t.isP2WPKH = false
 		}
+		fmt.Printf("%s\n", stack)
 	}
+
 	if len(stack) == 0 {
 		return false
 	}

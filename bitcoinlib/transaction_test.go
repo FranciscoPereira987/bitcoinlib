@@ -208,7 +208,7 @@ func TestCoinbaseHeight(t *testing.T) {
 func TestP2PWKH(t *testing.T) {
 	tx, err := bitcoinlib.FetchTransaction("d869f854e1f8788bcff294cc83b280942a8c728de71eb709a2c29d10bfe21b7c", true, false)
 	if err != nil {
-		t.Fatal("Failed fetching transaction")
+		t.Fatalf("Failed fetching transaction: %s", err)
 	}
 	if !tx.Verify(true) {
 		t.Fatal("Failed to verify p2pwkh transaction")
@@ -223,17 +223,19 @@ func TestP2PWKH(t *testing.T) {
 	if first != second {
 		t.Fatalf("Serialization from serialization doesnt match: %s vs %s", first, second)
 	}
-	t.Fail()
 }
 
 /*
 def test_verify_p2sh_p2wpkh(self):
-        tx = TxFetcher.fetch('')
-        self.assertTrue(tx.verify())
-*/
 
+	tx = TxFetcher.fetch('')
+	self.assertTrue(tx.verify())
+*/
 func TestP2SH_P2PWKH(t *testing.T) {
-	tx, _ := bitcoinlib.FetchTransaction("c586389e5e4b3acb9d6c8be1c19ae8ab2795397633176f5a6442a261bbdefc3a", false, false)
+	tx, err := bitcoinlib.FetchTransaction("c586389e5e4b3acb9d6c8be1c19ae8ab2795397633176f5a6442a261bbdefc3a", false, false)
+	if err != nil {
+		t.Fatalf("Failed fetching transaction: %s", err)
+	}
 	if !tx.Verify(false) {
 		t.Fatal("Failed to verify p2sh-p2pwkh transaction")
 	}
