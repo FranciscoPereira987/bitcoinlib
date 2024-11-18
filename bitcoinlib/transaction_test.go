@@ -245,12 +245,6 @@ func TestP2SH_P2PWKH(t *testing.T) {
 	}
 }
 
-/*
-def test_verify_p2wsh(self):
-
-	tx = TxFetcher.fetch('', testnet=True)
-	self.assertTrue(tx.verify())
-*/
 func TestP2WSH(t *testing.T) {
 	tx, err := bitcoinlib.FetchTransaction("78457666f82c28aa37b74b506745a7c7684dc7842a52a457b09f09446721e11c", true, false)
 	if err != nil {
@@ -258,6 +252,32 @@ func TestP2WSH(t *testing.T) {
 	}
 	if !tx.Verify(true) {
 		t.Fatal("Failed to verify p2wsh transaction")
+	}
+	serialized := tx.Serialize()
+	refreshed, err := bitcoinlib.ParseTransaction(bytes.NewReader(serialized))
+	if err != nil {
+		t.Fatalf("Failed parsing from serialization: %s", err)
+	}
+	first := hex.EncodeToString(serialized)
+	second := hex.EncodeToString(refreshed.Serialize())
+	if first != second {
+		t.Fatalf("Serialization from serialization doesnt match: %s vs %s", first, second)
+	}
+}
+
+/*
+def test_verify_p2sh_p2wsh(self):
+        tx = TxFetcher.fetch('', testnet=True)
+        self.assertTrue(tx.verify())
+*/
+
+func TestP2SH_P2WSH(t *testing.T) {
+	tx, err := bitcoinlib.FetchTransaction("954f43dbb30ad8024981c07d1f5eb6c9fd461e2cf1760dd1283f052af746fc88", true, false)
+	if err != nil {
+		t.Fatalf("Failed fetching transaction: %s", err)
+	}
+	if !tx.Verify(true) {
+		t.Fatal("Failed to verify p2sh_p2wsh transaction")
 	}
 	serialized := tx.Serialize()
 	refreshed, err := bitcoinlib.ParseTransaction(bytes.NewReader(serialized))
