@@ -1,7 +1,9 @@
 package bitcoinlib
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -47,6 +49,7 @@ type CombinedScript struct {
 	cmds     []Operation
 	isP2SH   bool
 	isP2WPKH bool
+	isP2WSH  bool
 }
 
 func NewScript(cmds []Operation) *Script {
@@ -140,6 +143,7 @@ func (t *ScriptPubKey) Combine(key Script) *CombinedScript {
 		cmds,
 		t.isP2SH(),
 		t.isP2WPKH(),
+		t.isP2WSH(),
 	}
 }
 
@@ -149,6 +153,7 @@ func (t *CombinedScript) EvaluateScriptHash() bool {
 	z := ""
 	helperScript := &CombinedScript{
 		t.cmds[:4],
+		false,
 		false,
 		false,
 	}
@@ -177,7 +182,37 @@ func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte) bool {
 	return pubKey.Combine(*privKey).Evaluate(z, witness)
 }
 
+func EvaluateP2WPSH(z string, sha string, witness [][]byte) bool {
+	validation := sha256.Sum256(witness[len(witness)-1])
+	if hex.EncodeToString(validation[:]) != sha {
+		return false
+	}
+	script, err := parseScriptFromBytes(witness[len(witness)-1])
+	if err != nil {
+		return false
+	}
+	rest := []byte{}
+	for i := range len(witness) - 1 {
+		rest = append(rest, EncodeVarInt(uint64(len(witness[i])))...)
+		rest = append(rest, witness[i]...)
+	}
+	pubkey, err := parseScriptFromBytes(rest)
+	if err != nil {
+		return false
+	}
+	final := append(pubkey, script...)
+	slices.Reverse(final)
+	return (&CombinedScript{final, false, false, false}).Evaluate(z, nil)
+}
+
 func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
+	if t.isP2WSH {
+		return EvaluateP2WPSH(z, hex.EncodeToString(t.cmds[0].(*ScriptVal).Val), witness)
+	}
+	if t.isP2SH {
+		//Evaluate P2SH
+		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness)
+	}
 	var witnesses []byte
 	if witness != nil {
 		for _, item := range witness {
@@ -188,11 +223,6 @@ func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 			}
 		}
 	}
-	if t.isP2SH {
-		//Evaluate P2SH
-		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness)
-	}
-
 	cmds := make([]Operation, len(t.cmds))
 	copy(cmds, t.cmds)
 	stack := make([]Operation, 0)
@@ -225,7 +255,6 @@ func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 			}
 			t.isP2WPKH = false
 		}
-		fmt.Printf("%s\n", stack)
 	}
 
 	if len(stack) == 0 {
