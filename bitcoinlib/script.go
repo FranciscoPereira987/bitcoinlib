@@ -156,14 +156,15 @@ func (t *CombinedScript) EvaluateScriptHash() bool {
 }
 
 // Evaluates a Redeem Script (need to parse it and then create the correct script to evaluate)
-func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte, witnesses []byte) bool {
+func (t *CombinedScript) EvaluateRedeemScript(z string, witness [][]byte) bool {
 	if witness != nil {
-		parsed, err := parseScriptFromBytes(witnesses)
+		otherParse, err := parseScriptFromBytes(t.cmds[len(t.cmds)-1].(*ScriptVal).Val)
 		if err != nil {
 			return false
 		}
-		fmt.Printf("%s\n%s\n", parsed, t.cmds)
-		return false
+		pubKey := NewPubkey(otherParse)
+		privKey := NewScript([]Operation{})
+		return pubKey.Combine(*privKey).Evaluate(z, witness)
 	}
 	script := t.cmds[len(t.cmds)-4].(*ScriptVal)
 	pubKeyScript, err := parseScriptFromBytes(script.Val)
@@ -189,7 +190,7 @@ func (t *CombinedScript) Evaluate(z string, witness [][]byte) bool {
 	}
 	if t.isP2SH {
 		//Evaluate P2SH
-		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness, witnesses)
+		return t.EvaluateScriptHash() && t.EvaluateRedeemScript(z, witness)
 	}
 
 	cmds := make([]Operation, len(t.cmds))
